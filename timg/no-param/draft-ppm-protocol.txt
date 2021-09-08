@@ -468,7 +468,7 @@ Time uint64; /* seconds elapsed since start of UNIX epoch */
    opaque TaskId[32];
 
    A "TaskId" is a globally unique sequence of bytes.  It is RECOMMENDED
-   that this be set to a random string derived from a cryptographically
+   that this be set to a random string output by a cryptographically
    secure pseudorandom number generator.  Each task has the following
    parameters associated with it:
 
