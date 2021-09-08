@@ -512,8 +512,8 @@ Table of Contents
 
    *  "min_batch_duration": The minimum batch duration, i.e., the
       minimum time difference between the oldest and newest report in a
-      batch.  This defines the boundaries with which the batch window of
-      each collect request must be aligned.  (See Section 4.4.1.)
+      batch.  This defines the boundaries with which the batch interval
+      of each collect request must be aligned.  (See Section 4.4.1.)
 
    *  "proto": The PPM protocol, e.g., Prio or Hits.  The rest of the
       structure contains the protocol specific parameters.
@@ -995,7 +995,7 @@ encrypted_output_share = context.Seal(batch_start || batch_end, output_share)
    Section 4.3.2.  (This request may too have been made in advance.)
 
    Next, the leader computes its own output share by aggregating all of
-   the valid input shares that fall within the batch window.  Finally,
+   the valid input shares that fall within the batch interval.  Finally,
    it responds with HTTP status 200 and a body consisting of a
    CollectResp message:
 
@@ -1026,9 +1026,8 @@ encrypted_output_share = context.Seal(batch_start || batch_end, output_share)
    respects the boundaries defined by the PPM parameters "Param".
    Namely, it checks that both "batch_start" and "batch_end" are
    divisible by "Param.min_batch_duration" and that "batch_end -
-   batch_window >= min_batch_duration".  Unless both these conditions
-   are true, it aborts and alerts the peer with "invalid batch
-   interval".
+   batch_start >= min_batch_duration".  Unless both these conditions are
+   true, it aborts and alerts the peer with "invalid batch interval".
 
    Next, the aggregator checks that the request respects the generic
    privacy parameters of the PPM task.  Let "X" denote the set of input
