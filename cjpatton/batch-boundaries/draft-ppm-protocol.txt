@@ -891,14 +891,18 @@ OutputShareReq (State 4) ----------------------------------->
 
    struct {
      TaskID task_id;
-     Time batch_start; // Same as CollectReq.batch_start.
-     Time batch_end;   // Same as CollectReq.batch_end.
+     Interval batch_interval;
      opaque helper_state<0..2^16>;
    } OutputShareReq;
 
+   struct {
+     Time start;
+     Time end;
+   } Interval;
+
    *  "task_id" is the task ID associated with the PPM parameters.
 
-   *  "[batch_start, batch_end)" is the batch interval of the request.
+   *  "batch_interval" is the batch interval of the request.
 
    *  "helper_state" is the helper's state, which is carried across
       requests from the leader.
@@ -921,13 +925,13 @@ OutputShareReq (State 4) ----------------------------------->
    collector's public key as follows:
 
 enc, context = SetupBaseS(pk, "pda output share" || task_id || aggregator_id)
-encrypted_output_share = context.Seal(batch_start || batch_end, output_share)
+encrypted_output_share = context.Seal(batch_interval, output_share)
 
    where "pk" is the HPKE public key encoded by the collector's HPKE key
    configuration, "task_id" is "OutputShareReq.task_id" and
    "aggregator_id" is the index of the helper's endpoint in
    "Param.aggregator_endpoints". "output_share" is the serialized
-   "OutputShare". "batch_start" and "batch_end" are obtained from the
+   "OutputShare", and "batch_interval" is obtained from the
    "OutputShareReq".
 
    This encryption prevents the leader from learning the actual result,
@@ -964,8 +968,7 @@ encrypted_output_share = context.Seal(batch_start || batch_end, output_share)
 
    struct {
      TaskID task_id;
-     Time batch_start;  // The beginning of the batch.
-     Time batch_end;    // The end of the batch (exclusive).
+     Interval batch_interval;
      select (Param.proto) { // Param corresponding to task_id
        case prio: PrioCollectReq;
        case hits: HitsCollectReq;
@@ -976,7 +979,7 @@ encrypted_output_share = context.Seal(batch_start || batch_end, output_share)
 
    *  "task_id", the task ID associated with the PPM parameters "Param".
 
-   *  "[batch_start, batch_end)", the request's batch interval.
+   *  "batch_interval", the request's batch interval.
 
    The remainder of the message is dedicated to the protocol-specific
    request parameters.
@@ -1007,9 +1010,9 @@ encrypted_output_share = context.Seal(batch_start || batch_end, output_share)
    } CollectResp;
 
    *  "shares" is a vector of "EncryptedOutputShare"s, as described in
-      Section 4.3.2, except that for the leader's share, the "task_id",
-      "batch_start", and "batch_end" used to encrypt the "OutputShare"
-      are obtained from the "CollectReq".
+      Section 4.3.2, except that for the leader's share, the "task_id"
+      and "batch_interval" used to encrypt the "OutputShare" are
+      obtained from the "CollectReq".
 
    [OPEN ISSUE: Describe how intra-protocol errors yield collect errors
    (see issue#57).  For example, how does a leader respond to a collect
@@ -1024,10 +1027,11 @@ encrypted_output_share = context.Seal(batch_start || batch_end, output_share)
 
    First the aggregator checks that the request's batch interval
    respects the boundaries defined by the PPM parameters "Param".
-   Namely, it checks that both "batch_start" and "batch_end" are
-   divisible by "Param.min_batch_duration" and that "batch_end -
-   batch_start >= min_batch_duration".  Unless both these conditions are
-   true, it aborts and alerts the peer with "invalid batch interval".
+   Namely, it checks that both "batch_interval.start" and
+   "batch_interval.end" are divisible by "Param.min_batch_duration" and
+   that "batch_interval.end - batch_interval.start >=
+   min_batch_duration".  Unless both these conditions are true, it
+   aborts and alerts the peer with "invalid batch interval".
 
    Next, the aggregator checks that the request respects the generic
    privacy parameters of the PPM task.  Let "X" denote the set of input
