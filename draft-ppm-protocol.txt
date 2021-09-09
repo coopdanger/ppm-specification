@@ -37,7 +37,7 @@ Discussion Venues
    is archived at .
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/abetterinternet/prio-documents.
+   https://github.com/abetterinternet/ppm-specification.
 
 Status of This Memo
 
@@ -296,7 +296,7 @@ Table of Contents
                        Figure 1: System Architecture
 
    [[OPEN ISSUE: This shows two helpers, but the document only allows
-   one for now. https://github.com/abetterinternet/prio-documents/
+   one for now. https://github.com/abetterinternet/ppm-specification/
    issues/117]]
 
    The main participants in the protocol are as follows:
@@ -501,8 +501,8 @@ Table of Contents
       (described in Section 4.2.1).  Putting the collector's HPKE
       configuration directly in "struct PPMParam" absolves collectors of
       the burden of operating an HTTP server.  See #102
-      (https://github.com/abetterinternet/prio-documents/issues/102) for
-      discussion.
+      (https://github.com/abetterinternet/ppm-specification/issues/102)
+      for discussion.
 
    *  "max_batch_lifetime": The maximum number of times a batch of
       reports may be used in a collect request.
@@ -1532,7 +1532,7 @@ encrypted_output_share = context.Seal(batch_interval, output_share)
    aggregator is defective, and it may be possible to identify the
    defector (i.e., if a majority of runs agree, and a single aggregator
    appears in every run that disagrees).  See #22
-   (https://github.com/abetterinternet/prio-documents/issues/22) for
+   (https://github.com/abetterinternet/ppm-specification/issues/22) for
    discussion.
 
 6.7.  Infrastructure diversity
