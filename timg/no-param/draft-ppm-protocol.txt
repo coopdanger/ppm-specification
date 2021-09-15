@@ -5,12 +5,12 @@
 Network Working Group                                       T. Geoghegan
 Internet-Draft                                                      ISRG
 Intended status: Standards Track                               C. Patton
-Expires: 13 March 2022                                        Cloudflare
+Expires: 19 March 2022                                        Cloudflare
                                                              E. Rescorla
                                                                  Mozilla
                                                                C.A. Wood
                                                               Cloudflare
-                                                        9 September 2021
+                                                       15 September 2021
 
 
                      Privacy Preserving Measurement
@@ -54,7 +54,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 13 March 2022.
+   This Internet-Draft will expire on 19 March 2022.
 
 Copyright Notice
 
@@ -476,8 +476,8 @@ Table of Contents
 
 4.1.  Task Configuration
 
-   Prior to the start of the protocol, each endpoint in the system must
-   agree on the configuration for each task.  A task is uniquely
+   Prior to the start of execution of the protocol, each participant
+   must agree on the configuration for each task.  A task is uniquely
    identified by its task ID:
 
    opaque TaskId[32];
@@ -487,34 +487,32 @@ Table of Contents
    secure pseudorandom number generator.  Each task has the following
    parameters associated with it:
 
-   *  aggregator endpoints: A list of URLs relative to which an
+   *  "aggregator_endpoints": A list of URLs relative to which an
       aggregator's API endpoints can be found.  Each endpoint's list
       MUST be in the same order.  The leader's endpoint MUST be the
       first in the list.  The order of the "encrypted_input_shares" in a
       "Report" (see Section 4.2) MUST be the same as the order in which
       aggregators appear in this list.
 
-   *  collector HPKE configuration: The HPKE configuration of the
-      collector (described in Section 4.2.1).  Having participants agree
-      on this absolves collectors of the burden of operating an HTTP
-      server.  See #102 (https://github.com/abetterinternet/prio-
-      documents/issues/102) for discussion.  Referred to as
-      "collector_config" elsewhere in this document.
+   *  "collector_config": The HPKE configuration of the collector
+      (described in Section 4.2.1).  Having participants agree on this
+      absolves collectors of the burden of operating an HTTP server.
+      See #102 (https://github.com/abetterinternet/prio-documents/
+      issues/102) for discussion.
 
-   *  maximum batch lifetime: The maximum number of times a batch of
-      reports may be used in collect requests.  Referred to as
-      "max_batch_lifetime" elsewhere in this document.
+   *  "max_batch_lifetime": The maximum number of times a batch of
+      reports may be used in collect requests.
 
-   *  minimum batch size: The minimum number of reports that appear in a
+   *  "min_batch_size": The minimum number of reports that appear in a
       batch.
 
-   *  minimum batch duration: The minimum time difference between the
+   *  "min_batch_duration": The minimum time difference between the
       oldest and newest report in a batch.  This defines the boundaries
       with which the batch interval of each collect request must be
-      aligned.  (See Section 4.4.1.)  Referred to as
-      "min_batch_duration" elsewhere i this document.
+      aligned.  (See Section 4.4.1.)
 
-   *  protocol: The PPM protocol, e.g., Prio or Hits.
+   *  "protocol": named parameter identifying the core PPM protocol,
+      e.g., Prio or Hits.
 
 4.2.  Uploading Reports
 
@@ -608,9 +606,10 @@ Table of Contents
 
    *  "encrypted_input_shares" contains the encrypted input shares of
       each of the aggregators.  The order in which the encrypted input
-      shares appear MUST match the order of the task's aggregator
-      endpoints parameter (i.e., the first share should be the leader's,
-      the second share should be for the first helper, and so on).
+      shares appear MUST match the order of the task's
+      "aggregator_endpoints" (i.e., the first share should be the
+      leader's, the second share should be for the first helper, and so
+      on).
 
    [OPEN ISSUE: consider dropping nonce altogether and relying on a more
    fine-grained timestamp, subject to collision analysis]
@@ -640,8 +639,8 @@ Table of Contents
    input share, the client first generates an HPKE [I-D.irtf-cfrg-hpke]
    context for the aggregator by running
 
-   enc, context = SetupBaseS(pk,
-                             "pda input share" || task_id|| server_role)
+  enc, context = SetupBaseS(pk,
+                            "pda input share" || task_id || server_role)
 
    where "pk" is the aggregator's public key, "task_id" is
    "Report.task_id" and "server_role" is a byte whose value is "0x01" if
