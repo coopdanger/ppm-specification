@@ -467,14 +467,15 @@ Table of Contents
 
 4.1.  Task Configuration
 
-   A task involves evaluation of a specific VDAF [VDAF] over a set of
-   client inputs.  The VDAF determines the type of input measurements
-   and the type of the output of the aggregation function.  It also
-   determines how many aggregators are involved (this document currently
-   supports just two) and how many rounds of communication are required
-   to verify an input's validity.  Prior to the start of execution of
-   the protocol, each participant must agree on the configuration for
-   each task.  A task is uniquely identified by its task ID:
+   A task involves evaluation of a specific Verifiable Distributed
+   Aggregation Function (VDAF, see [VDAF]) over a set of client inputs.
+   The VDAF determines the type of input measurements and the type of
+   the output of the aggregation function.  It also determines how many
+   aggregators are involved (this document currently supports just two)
+   and how many rounds of communication are required to verify an
+   input's validity.  Prior to the start of execution of the protocol,
+   each participant must agree on the configuration for each task.  A
+   task is uniquely identified by its task ID:
 
    opaque TaskId[32];
 
