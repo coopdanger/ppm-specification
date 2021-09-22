@@ -697,14 +697,15 @@ Table of Contents
    The structure of the aggregation flow is determined by the VDAF
    [VDAF] being executed.  Specifically, the VDAF specifies a constant
    number of rounds of communication that are required before the
-   aggregators determine if their shares are valid.
+   aggregators determine if their shares are valid.  The flow requires
+   as many aggregation requests as there are VDAF rounds.
 
-   In addition, form VDAF schemes, like the subset-histogram
+   In addition, some VDAF schemes, like the subset-histogram
    construction of the heavy hitters protocol [BBCGGI21], take an
-   aggregation parameter as input, and the aggregation parameter may
-   only be known to the aggregators once a collect request is made.  For
-   heavy hitters in particular, the aggregation parameter is the set of
-   candidate prefixes, and is only known once the collector has
+   _output parameter_ as input, and the output parameter may only be
+   known to the aggregators once a collect request is made.  For heavy
+   hitters in particular, the aggregation parameter is the set of
+   candidate prefixes, which is only known once the collector has
    recovered the output from the previous collect request.  On the other
    hand, PPM tasks that use prio3 [VDAF] can typically begin the process
    right away because there is no such parameter.
@@ -761,40 +762,41 @@ OutputShareReq (State 4) ----------------------------------->
    to "[aggregator]/aggregate" with the following message:
 
    struct {
+     AggregateReqType type;
      TaskID task_id;
      opaque helper_state<0..2^16>;
+     select (type) {
+       case start: opaque output_param<0..2^16-1>;
+       case next:  Empty;
+     }
      AggregateSubReq seq<1..2^24-1>;
    } AggregateReq;
 
-   The structure contains the PPM task, an opaque _helper state_ string,
-   and a sequence of _sub-requests_, each corresponding to a unique
-   client report.  Sub-requests are structured as follows:
+   enum { start(0), next(1), } AggregateReqType;
+
+   The structure contains the PPM task, an opaque _helper state_ string
+   ("helper_state"), and a sequence of _sub-requests_ ("seq"), each
+   corresponding to a unique client report.  The first aggregate request
+   also carries the output parameter ("output_param") used for VDAF
+   evaluation.  Sub-requests are structured as follows:
 
    struct {
-     AggregateSubReqType type;
      Time time;                       // Report.time
      uint64 nonce;                    // Report.nonce
      Extension extensions<4..2^16-1>; // Report.extensions
      opaque verify_message<1..2^16-1>;
-     select (type) {
-       case start:
-         EncryptedInputShare helper_share;
-         opaque output_param<0..2^16-1>;
-       case next:
-         Empty;
+     select (AggregateReq.type) {
+       case start: EncryptedInputShare helper_share;
+       case next:  Empty;
      }
    } AggregateSubReq;
-
-   enum { start(0), next(1), } AggregateSubReqType;
 
    Each sub-request for a given report includes the report's timestamp,
    nonce, and extensions ("time", "nonce", and "extensions"
    respectively) and a value called the verification message
    ("verify_message"), generated as described in the next paragraph.
    The first sub-request also carries the helper's encrypted input share
-   ("helper_share") and a field called the output parameter
-   ("output_parameter").  The output parameter is used for VDAF [VDAF]
-   evaluation.
+   ("helper_share").
 
    The leader generates the first verification message by decrypting its
    input share and initializing its state for the VDAF evaluation using
