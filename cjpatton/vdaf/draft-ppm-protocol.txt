@@ -224,6 +224,8 @@ Table of Contents
 
 2.  Overview
 
+   [TODO Frame the PPM protocol around evaluation of a VDAF.]
+
    The protocol is executed by a large set of clients and a small set of
    servers.  We call the servers the _aggregators_. Each client's input
    to the protocol is a set of measurements (e.g., counts of some user
@@ -327,7 +329,7 @@ Table of Contents
    *  The set of aggregators and necessary cryptographic keying material
       to use; and
 
-   *  The PPM scheme to use.  This is to some extent dictated by the
+   *  The VDAF scheme to use.  This is to some extent dictated by the
       previous choices.
 
    *  The minimum "batch size" of reports which can be aggregated.
@@ -348,7 +350,7 @@ Table of Contents
 
    The leader distributes the shares to the helpers and orchestrates the
    process of verifying them (see Section 2.2) and assembling them into
-   a final measurement for the collector.  Depending on the PPM scheme,
+   a final measurement for the collector.  Depending on the VDAF scheme,
    it may be possible to incrementally process each report as it comes
    in, or may be necessary to wait until the entire batch of reports is
    received.
@@ -490,7 +492,8 @@ Table of Contents
       first in the list.  The order of the "encrypted_input_shares" in a
       "Report" (see Section 4.2) MUST be the same as the order in which
       aggregators appear in this list.  The length of this list MUST be
-      two.
+      two.  [NOTE We intend to support multiple helpers in the future,
+      but for now there is just one.]
 
    *  "collector_config": The HPKE configuration of the collector
       (described in Section 4.2.1).  Having participants agree on this
@@ -626,11 +629,11 @@ Table of Contents
    *  "payload" is the encrypted input share.
 
    To generate the report, the client begins by running the input-
-   distribution algorithm of the VDAF identified by "protocol".  This
-   maps its measurement into a pair of input shares, the first intended
-   for the leader and the second intended for the helper.  To encrypt
-   each input share, the client first generates an HPKE
-   [I-D.irtf-cfrg-hpke] context for the aggregator by running
+   distribution algorithm of the VDAF scheme.  This transforms its
+   measurement into a pair of input shares, the first intended for the
+   leader and the second intended for the helper.  To encrypt each input
+   share, the client first generates an HPKE [I-D.irtf-cfrg-hpke]
+   context for the aggregator by running
 
   enc, context = SetupBaseS(pk,
                             "pda input share" || task_id || server_role)
@@ -696,20 +699,19 @@ Table of Contents
    local aggregate output share.
 
    The structure of the aggregation flow is determined by the VDAF
-   [VDAF] being executed.  Specifically, the VDAF specifies a constant
+   [VDAF] being executed.  In particular, the VDAF specifies a constant
    number of rounds of communication that are required before the
    aggregators determine if their shares are valid.  The flow requires
-   as many aggregation requests as there are VDAF rounds.
+   as many aggregate requests as there are VDAF rounds.
 
-   In addition, some VDAF schemes, like the subset-histogram
-   construction of the heavy hitters protocol [BBCGGI21], take an
-   _output parameter_ as input, and the output parameter may only be
-   known to the aggregators once a collect request is made.  For heavy
-   hitters in particular, the aggregation parameter is the set of
-   candidate prefixes, which is only known once the collector has
-   recovered the output from the previous collect request.  On the other
-   hand, PPM tasks that use prio3 [VDAF] can typically begin the process
-   right away because there is no such parameter.
+   In addition, some VDAF schemes take an _output parameter_ as input,
+   which may only be known the aggregators once the previous collect
+   request is completed.  For example, the output parameter for Hits
+   [BBCGGI21] is the set of candidate prefixes, which is only known once
+   the collector has recovered the output from the previous collect
+   request.  On the other hand, PPM tasks that use prio3 [VDAF] can
+   typically begin the process right away because there is no such
+   parameter.
 
    [TODO paragraph seems out-of-place.  Maybe flesh it out and stick in
    operational considerations?]  Note that it is possible to aggregate
@@ -806,11 +808,10 @@ OutputShareReq (State 4) ----------------------------------->
    initialization algorithm that is run out-of-band to configure each of
    the aggregators.  In practice, the leader/helper will need to have
    run this step in-band before an aggregate request is made.  For both
-   Hits and Prio this involves securely exchanging a secret key.]  The
-   first verification message is the output of the verify-start
-   algorithm executed on the leader's input share.  Subsequent
-   verification messages are computed using the verify-next algorithm of
-   the VDAF.
+   Hits and Prio this involves securely exchanging a key.]  The first
+   verification message is the output of the verify-start algorithm
+   executed on the leader's input share.  Subsequent verification
+   messages are computed using the verify-next algorithm of the VDAF.
 
    In order to provide replay protection, the leader is required to send
    aggregate sub-requests in ascending order, where the ordering on sub-
@@ -859,18 +860,18 @@ OutputShareReq (State 4) ----------------------------------->
 
    where "sk" is the HPKE secret key, "task_id" is
    "AggregateReq.task_id" and "server_role" is the role of the server
-   ("0x01" for the leader and "0x00" for the helper). "time", "nonce"
+   ("0x00" for the leader and "0x01" for the helper). "time", "nonce"
    and "extensions" are obtained from the corresponding fields in
    "AggregateSubReq".  If decryption fails, then the sub-response
    consists of a "decryption error" alert.  [See issue#57.]
 
    Otherwise, the helper handles the request for its plaintext input
    share "input_share" as follows.  It first initializes its state for
-   the VDAF evaluation using the given output parameter.  [OPEN ISSUE
-   This needs to be specified.]  It generates the first verification
-   message by running the verify-start algorithm on its input share.
-   Subsequent verification messages are generated using the verify-next
-   algorithm.
+   the VDAF evaluation using the output parameter carried by the first
+   aggregate request.  [OPEN ISSUE This needs to be specified.]  It
+   generates the first verification message by running the verify-start
+   algorithm on its input share.  Subsequent verification messages are
+   generated using the verify-next algorithm.
 
    After processing all of the sub-requests, the helper encrypts its
    updated state and constructs its response to the aggregate request.
