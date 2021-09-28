@@ -639,16 +639,16 @@ Once a set of clients have uploaded their reports to the leader, the leader and
 helper begin verifying and aggregating them. In order to enable the system to
 handle very large batches of reports, this process can be performed
 incrementally. To aggregate a set of reports, the leader sends a sequence of
-aggregate request to the helper, the first of which contains the helper's
-encrypted input shares. After a number of successful requests, both aggregators
-have recovered shares of a set of valid inputs.
+request to the helper, the first of which contains the helper's encrypted input
+shares. After a number of successful requests, both aggregators have recovered
+shares of a set of valid inputs.
 
 The structure of the aggregation flow is determined by the VDAF [VDAF] being
 executed.
 
 * The VDAF specifies a constant number of rounds of communication that are
   required before the aggregators determine if their shares are valid. The flow
-  requires as many aggregate requests as there are VDAF rounds.
+  requires as many requests as there are VDAF rounds.
 
 * Evaluating the VDAF requires an *output parameter*, which may not be known
   prior to receiving a client's report. For example, the output parameter for
@@ -702,8 +702,8 @@ reports to the helper. These reports MUST all be associated with the same PPM
 task. [[OPEN ISSUE: And the same batch, right?]]
 
 For the second aggregator endpoint `[aggregator]` in `VerifyStartReq.task_id`'s
-parameters, the leader sends a POST request to `[aggregator]/aggregate` with the
-following message:
+parameters, the leader sends a POST request to `[aggregator]/aggregate_start`
+with the following message:
 
 ~~~
 struct {
@@ -815,13 +815,13 @@ VDAF state and the verification message:
 ~~~
 
 After processing all of the sub-requests, the helper encrypts its updated state
-and constructs its response to the aggregate request.
+and constructs its response to the request.
 
 ### Verify-Next Request
 
 For VDAFs requiring more than one round of communication, subsequent rounds are
-handled by using a *verify-next request*. The message payload has the following
-structure:
+handled by using a *verify-next request*. the leader sends a POST request to
+`[aggregator]/aggregate_next` with the following message:
 
 ~~~
 struct {
@@ -879,19 +879,19 @@ output share. See issue#141.]
 
 #### Leader State
 
-The leader is required to issue aggregate requests in order, but reports are
-likely to arrive out-of-order. The leader SHOULD buffer reports for a time
-period proportional to the batch window before issuing the first aggregate
-request. Failure to do so will result in out-of-order reports being dropped by
-the helper.
+The leader is required to issue requests in order, but reports are likely to
+arrive out-of-order. The leader SHOULD buffer reports for a time period
+proportional to the batch window before issuing the verify-start request.
+Failure to do so will result in out-of-order reports being dropped by the
+helper.
 
 #### Helper State
 
-The helper state is an optional parameter of an aggregate request that the
-helper can use to carry state across requests. At least part of the state will
-usually need to be encrypted in order to protect user privacy. However, the
-details of precisely how the state is encrypted and the information that it
-carries is up to the helper implementation.
+The helper state is an optional parameter of the verify-start and verify-next
+requests that the helper can use to carry state across requests. At least part
+of the state will usually need to be encrypted in order to protect user privacy.
+However, the details of precisely how the state is encrypted and the information
+that it carries is up to the helper implementation.
 
 ### Output Share Request {#output-share-request}
 
@@ -991,10 +991,10 @@ The named parameters are:
 * `output_param`, the output parameter with which the VDAF [VDAF] will be
   evaluated.
 
-Depending on the VDAF and how the leader is configured, the collect request may
-cause the leader to send a series of aggregate requests to the helpers in order
-to compute their share of the output. Alternately, if `output_share` is empty or
-a well-known value that is fixed in advance, the leader may already have made
+Depending on the VDAF and how the leader is configured, th collect request may
+cause the leader to send a series of requests to the helper in order to compute
+their share of the output. Alternately, if `output_share` is empty or a
+well-known value that is fixed in advance, the leader may already have made
 these requests and can respond immediately. In either case it responds to the
 collector's request as follows.
 
@@ -1804,7 +1804,7 @@ Type name:
 
 Subtype name:
 
-: ppm-aggregate-resp
+: ppm-verify-resp
 
 Required parameters:
 
