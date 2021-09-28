@@ -87,8 +87,10 @@ Table of Contents
        4.2.2.  Upload Request
        4.2.3.  Upload Extensions
      4.3.  Verifying and Aggregating Reports
-       4.3.1.  Aggregate Request
-       4.3.2.  Output Share Request
+       4.3.1.  Verify-Start Request
+       4.3.2.  Verify-Next Request
+       4.3.3.  Recovering the Output Share
+       4.3.4.  Output Share Request
      4.4.  Collecting Results
        4.4.1.  Validating Batch Parameters
        4.4.2.  Anti-replay
@@ -121,12 +123,13 @@ Table of Contents
      7.1.  Protocol Message Media Types
        7.1.1.  "application/ppm-hpke-config" media type
        7.1.2.  "message/ppm-report" media type
-       7.1.3.  "message/ppm-aggregate-req" media type
-       7.1.4.  "message/ppm-aggregate-resp" media type
-       7.1.5.  "message/ppm-output-share-req" media type
-       7.1.6.  "message/ppm-output-share-resp" media type
-       7.1.7.  "message/ppm-collect-req" media type
+       7.1.3.  "message/ppm-verify-start-req" media type
+       7.1.4.  "message/ppm-verify-next-req" media type
+       7.1.5.  "message/ppm-verify-resp" media type
+       7.1.6.  "message/ppm-output-share-req" media type
+       7.1.7.  "message/ppm-output-share-resp" media type
        7.1.8.  "message/ppm-collect-req" media type
+       7.1.9.  "message/ppm-collect-req" media type
      7.2.  Upload Extension Registry
      7.3.  URN Sub-namespace for PPM (urn:ietf:params:ppm)
    8.  Acknowledgements
@@ -224,7 +227,11 @@ Table of Contents
 
 2.  Overview
 
-   [TODO Frame the PPM protocol around evaluation of a VDAF.]
+   [TODO Give an overview of the VDAF syntax and frame the PPM protocol
+   around evaluation of a VDAF.]
+
+   [TODO Name the various requests, including collect requests, and say
+   what they are.]
 
    The protocol is executed by a large set of clients and a small set of
    servers.  We call the servers the _aggregators_. Each client's input
@@ -739,70 +746,58 @@ Table of Contents
    attach a state parameter to its response, with the leader returning
    the state value in the next request, thus offloading the state to the
    leader.  This state value MUST be cryptographically protected as
-   described in Section 4.3.1.2.
+   described in Section 4.3.3.2.
 
 Leader                                                 Helper
 
-AggregateReq (Reports 1-10) -------------------------------->  \
-<------------------------------------ AggregateResp (State 1)  | Reports
-AggregateReq (continued, State 1)      --------------------->  | 10-11
-<------------------------------------ AggregateResp (State 2)  /
+VerifyStartReq (Reports 1-10) -------------------------------->  \
+<------------------------------------ VerifyStartResp (State 1)  | Reports
+VerifyStartReq (continued, State 1) -------------------------->  | 10-11
+<------------------------------------ VerifyStartResp (State 2)  /
 
 
-AggregateReq (Reports 11-20, State 2) ---------------------->  \
-<------------------------------------ AggregateResp (State 3)  | Reports
-AggregateReq (continued, State 3) -------------------------->  | 20-21
-<------------------------------------ AggregateResp (State 4) /
+VerifyNextReq (Reports 11-20, State 2) ---------------------->  \
+<------------------------------------ VerifyNextResp (State 3)  | Reports
+VerifyNextReq (continued, State 3) -------------------------->  | 20-21
+<------------------------------------ VerifyNextResp (State 4)  /
 
 OutputShareReq (State 4) ----------------------------------->
 <----------------------------------- OutputShareResp (Result)
 
             Figure 2: Aggregation Process (batch size=20)
 
-   [OPEN ISSUE: Should there be an indication of whether a given
-   AggregateReq is a continuation of a previous sub-batch?]
-
    [TODO: Decide if and how the collector's request is authenticated.]
 
-4.3.1.  Aggregate Request
+4.3.1.  Verify-Start Request
 
-   The AggregateReq request is used by the leader to send a set of
-   reports to the helper.  These reports MUST all be associated with the
-   same PPM task.  [[OPEN ISSUE: And the same batch, right?]]
+   The _verify-start request_ request is used by the leader to send a
+   set of reports to the helper.  These reports MUST all be associated
+   with the same PPM task.  [[OPEN ISSUE: And the same batch, right?]]
 
    For the second aggregator endpoint [aggregator] in
-   AggregateReq.task_id's parameters, the leader sends a POST request to
-   [aggregator]/aggregate with the following message:
+   VerifyStartReq.task_id's parameters, the leader sends a POST request
+   to [aggregator]/aggregate with the following message:
 
    struct {
-     AggregateReqType type;
      TaskID task_id;
      opaque helper_state<0..2^16>;
-     select (type) {
-       case start: opaque output_param<0..2^16-1>;
-       case next:  Empty;
-     }
-     AggregateSubReq seq<1..2^24-1>;
-   } AggregateReq;
-
-   enum { start(0), next(1), } AggregateReqType;
+     opaque output_param<0..2^16-1>;
+     VerifyStartSubReq seq<1..2^24-1>;
+   } VerifyStartReq;
 
    The structure contains the PPM task, an opaque _helper state_ string
    (helper_state), and a sequence of _sub-requests_ (seq), each
-   corresponding to a unique client report.  The first aggregate request
-   also carries the output parameter (output_param) used for VDAF
-   evaluation.  Sub-requests are structured as follows:
+   corresponding to a unique client report.  The request also carries
+   the output parameter (output_param) used for VDAF evaluation.  Sub-
+   requests are structured as follows:
 
    struct {
      Time time;                       // Report.time
      uint64 nonce;                    // Report.nonce
      Extension extensions<4..2^16-1>; // Report.extensions
      opaque verify_message<1..2^16-1>;
-     select (AggregateReq.type) {
-       case start: EncryptedInputShare helper_share;
-       case next:  Empty;
-     }
-   } AggregateSubReq;
+     EncryptedInputShare helper_share;
+   } VerifyStartSubReq;
 
    Each sub-request includes the report's timestamp, nonce, and
    extensions (time, nonce, and extensions respectively) and a value
@@ -810,9 +805,9 @@ OutputShareReq (State 4) ----------------------------------->
    described in the next paragraph.  The first sub-request also carries
    the helper's encrypted input share (helper_share).
 
-   The leader generates the first verification message by decrypting its
-   input share leader_share.  It first looks up the HPKE secret key sk
-   associated with leader_share.aggregato_config_id.  Next, it runs
+   The leader generates the verification message by decrypting its input
+   share leader_share.  To do so, it first looks up the HPKE secret key
+   sk associated with leader_share.aggregato_config_id.  Next, it runs
 
    context = SetupBaseR(leader_share.enc, sk,
                         "pda input share" || task_id || 0x00)
@@ -824,21 +819,12 @@ OutputShareReq (State 4) ----------------------------------->
    verify-start algorithm to compute its local VDAF state and the
    verification message:
 
-   (state, AggregateSubReq.verify_message) = vdaf_start(0x00,
+   (state, VerifyStartSubReq.verify_message) = vdaf_start(0x00,
              verify_param, output_param, time || nonce, input_share)
 
-   Subsequent verification messages are computed using the VDAF verify-
-   next algorithm:
-
-   (state, AggregateSubReq.verify_message) = vdaf_next(
-             state, inbound_message)
-
-   where inbound_message is the verification message sent by the peer in
-   response to the previous request.
-
    In order to provide replay protection, the leader is required to send
-   aggregate sub-requests in ascending order, where the ordering on sub-
-   requests is determined by the algorithm defined in Section 4.4.2.
+   sub-requests in ascending order, where the ordering on sub-requests
+   is determined by the algorithm defined in Section 4.4.2.
    Specifically, the leader constructs each request such that:
 
    *  each sub-request follows the previous sub-request; and
@@ -848,28 +834,29 @@ OutputShareReq (State 4) ----------------------------------->
 
    The helper handles well-formed requests as follows.  (As usual,
    malformed requests are handled as described in Section 3.1.)  It
-   first looks for PPM parameters corresponding to AggregateReq.task_id.
-   It then filters out out-of-order sub-requests by ignoring any sub-
-   request that does not follow the previous one (See Section 4.4.2.)
+   first looks for PPM parameters corresponding to
+   VerifyStartReq.task_id.  It then filters out out-of-order sub-
+   requests by ignoring any sub-request that does not follow the
+   previous one (See Section 4.4.2.)
 
    The response is an HTTP 200 OK with a body consisting of the helper's
    updated state and a sequence of _sub-responses_, where each sub-
    response corresponds to the sub-request in the same position in
-   AggregateReq.
+   VerifyStartReq.
 
    struct {
      opaque helper_state<0..2^16>;
-     AggregateSubResp seq<1..2^24-1>;
-   } AggregateResp;
+     VerifySubResp seq<1..2^24-1>;
+   } VerifyResp;
 
    struct {
-     Time time;     // Equal to AggregateSubReq.time.
-     uint64 nonce;  // Equal to AggregateSubReq.nonce.
+     Time time;    // VerifyStartSubReq.time
+     uint64 nonce; // VerifyStartSubReq.nonce
      opaque verification_message<1..2^16-1>;
-   } AggregateSubResp;
+   } VerifySubResp;
 
-   The helper computes the first verification message as follows.  It
-   first looks up the HPKE secret key sk associated with
+   The helper computes the verification message as follows.  It first
+   looks up the HPKE secret key sk associated with
    helper_share.aggregator_config_id.  If not found, then the sub-
    response consists of an "unrecognized config" alert.  [TODO: We'll
    want to be more precise about what this means.  See issue#57.]  Next,
@@ -880,28 +867,63 @@ OutputShareReq (State 4) ----------------------------------->
    input_share = context.Open(time || nonce || extensions,
                               helper_share.payload)
 
-   where task_id is AggregateReq.task_id and time, nonce, and extensiosn
-   are obtained from the corresponding fields in AggregateSubReq.  If
-   decryption fails, then the sub-response consists of a "decryption
-   error" alert.  [See issue#57.]
+   where task_id is VerifyStartReq.task_id and time, nonce, and
+   extensiosn are obtained from the corresponding fields in
+   VerifyStartSubReq.  If decryption fails, then the sub-response
+   consists of a "decryption error" alert.  [See issue#57.]
 
    Otherwise, the helper runs the VDAF verify-start algorithm to compute
    its local VDAF state and the verification message:
 
-   (state, AggregateSubReq.verify_message) = vdaf_start(0x01,
+   (state, VerifySubResp.verify_message) = vdaf_start(0x01,
              verify_param, output_param, time || nonce, input_share)
 
-   Subsequent verification messages are computed using the VDAF verify-
-   next algorithm:
+   After processing all of the sub-requests, the helper encrypts its
+   updated state and constructs its response to the aggregate request.
+
+4.3.2.  Verify-Next Request
+
+   For VDAFs requiring more than one round of communication, subsequent
+   rounds are handled by using a _verify-next request_. The message
+   payload has the following structure:
+
+   struct {
+     TaskID task_id;
+     opaque helper_state<0..2^16>;
+     VerifyNextSubReq seq<1..2^24-1>;
+   } VerifyNextReq;
+
+   *  task_id is the same as task ID as the verify-start request.
+
+   *  helper_state is the opaque state sent by the helper in response to
+      the previous verify request.
+
+   *  seq is the sequence of sub-requests.  It has the same number of
+      sub-requests as the previous request.
+
+   Each sub-request has the following structure:
+
+   struct {
+     Time time;
+     uint64 nonce;
+     opaque verify_message<1..2^16-1>;
+   } VerifyNextSubReq;
+
+   Fields time and nonce have the same value as the corresponding sub-
+   request in the verify-start request.  The helper's response consists
+   of a VerifyResp message constructed as described above.
+
+   Both aggregators compute verification message using the VDAF verify-
+   next algorithm as
 
    (state, AggregateSubReq.verify_message) = vdaf_next(
              state, inbound_message)
 
    where inbound_message is the verification message sent by the peer in
-   the previous request.
+   response to the previous request and state is the aggregator's VDAF
+   state.
 
-   After processing all of the sub-requests, the helper encrypts its
-   updated state and constructs its response to the aggregate request.
+4.3.3.  Recovering the Output Share
 
    Once all rounds of the VDAF have been completed for a given report,
    each aggregator runs the VDAF verify-finish algorithm to recover its
@@ -914,7 +936,7 @@ OutputShareReq (State 4) ----------------------------------->
    running total.  [OPEN ISSUE: Helper needs the leader to confirm
    acceptance before it consumes its output share.  See issue#141.]
 
-4.3.1.1.  Leader State
+4.3.3.1.  Leader State
 
    The leader is required to issue aggregate requests in order, but
    reports are likely to arrive out-of-order.  The leader SHOULD buffer
@@ -922,7 +944,7 @@ OutputShareReq (State 4) ----------------------------------->
    issuing the first aggregate request.  Failure to do so will result in
    out-of-order reports being dropped by the helper.
 
-4.3.1.2.  Helper State
+4.3.3.2.  Helper State
 
    The helper state is an optional parameter of an aggregate request
    that the helper can use to carry state across requests.  At least
@@ -931,7 +953,7 @@ OutputShareReq (State 4) ----------------------------------->
    state is encrypted and the information that it carries is up to the
    helper implementation.
 
-4.3.2.  Output Share Request
+4.3.4.  Output Share Request
 
    Once the aggregators have verified at least as many reports as
    required for the PPM task, the leader issues an _output share
@@ -1039,7 +1061,7 @@ OutputShareReq (State 4) ----------------------------------->
    batch parameters using the procedure in Section 4.4.1.  If so, it
    obtains the helper's encrypted output share for the batch interval by
    sending an output share request to the helper as described in
-   Section 4.3.2.  (This request may too have been made in advance.)
+   Section 4.3.4.  (This request may too have been made in advance.)
 
    Next, the leader computes its own output share by aggregating all of
    the valid input shares that fall within the batch interval.  Finally,
@@ -1055,7 +1077,7 @@ OutputShareReq (State 4) ----------------------------------->
    } CollectResp;
 
    *  shares is a vector of EncryptedOutputShares, as described in
-      Section 4.3.2, except that for the leader's share, the task_id and
+      Section 4.3.4, except that for the leader's share, the task_id and
       batch_interval used to encrypt the OutputShare are obtained from
       the CollectReq.
 
@@ -1631,13 +1653,15 @@ OutputShareReq (State 4) ----------------------------------->
 
    *  Report Section 4.2.2: "message/ppm-report"
 
-   *  AggregateReq Section 4.3.1: "message/ppm-aggregate-req"
+   *  VerifyStartReq Section 4.3.1: "message/ppm-verify-start-req"
 
-   *  AggregateResp Section 4.3.1: "message/ppm-aggregate-resp"
+   *  VerifyNextReq Section 4.3.2: "message/ppm-verify-next-req"
 
-   *  OutputShareReq Section 4.3.2: "message/ppm-output-share-req"
+   *  VerifyResp Section 4.3.1: "message/ppm-verify-resp"
 
-   *  OutputShareResp Section 4.3.2: "message/ppm-output-share-resp"
+   *  OutputShareReq Section 4.3.4: "message/ppm-output-share-req"
+
+   *  OutputShareResp Section 4.3.4: "message/ppm-output-share-resp"
 
    *  CollectReq Section 4.4: "message/ppm-collect-req"
 
@@ -1737,11 +1761,11 @@ OutputShareReq (State 4) ----------------------------------->
 
    Change controller:  IESG
 
-7.1.3.  "message/ppm-aggregate-req" media type
+7.1.3.  "message/ppm-verify-start-req" media type
 
    Type name:  message
 
-   Subtype name:  ppm-aggregate-req
+   Subtype name:  ppm-verify-start-req
 
    Required parameters:  N/A
 
@@ -1778,7 +1802,48 @@ OutputShareReq (State 4) ----------------------------------->
 
    Change controller:  IESG
 
-7.1.4.  "message/ppm-aggregate-resp" media type
+7.1.4.  "message/ppm-verify-next-req" media type
+
+   Type name:  message
+
+   Subtype name:  ppm-verify-next-req
+
+   Required parameters:  N/A
+
+   Optional parameters:  None
+
+   Encoding considerations:  only "8bit" or "binary" is permitted
+
+   Security considerations:  see Section 4.3.2
+
+   Interoperability considerations:  N/A
+
+   Published specification:  this specification
+
+   Applications that use this media type:  N/A
+
+   Fragment identifier considerations:  N/A
+
+   Additional information:  Magic number(s):  N/A
+
+                            Deprecated alias names for this type:  N/A
+
+                            File extension(s):  N/A
+
+                            Macintosh file type code(s):  N/A
+
+   Person and email address to contact for further information:  see Aut
+      hors' Addresses section
+
+   Intended usage:  COMMON
+
+   Restrictions on usage:  N/A
+
+   Author:  see Authors' Addresses section
+
+   Change controller:  IESG
+
+7.1.5.  "message/ppm-verify-resp" media type
 
    Type name:  application
 
@@ -1819,7 +1884,7 @@ OutputShareReq (State 4) ----------------------------------->
 
    Change controller:  IESG
 
-7.1.5.  "message/ppm-output-share-req" media type
+7.1.6.  "message/ppm-output-share-req" media type
 
    Type name:  application
 
@@ -1831,7 +1896,7 @@ OutputShareReq (State 4) ----------------------------------->
 
    Encoding considerations:  only "8bit" or "binary" is permitted
 
-   Security considerations:  see Section 4.3.2
+   Security considerations:  see Section 4.3.4
 
    Interoperability considerations:  N/A
 
@@ -1860,7 +1925,7 @@ OutputShareReq (State 4) ----------------------------------->
 
    Change controller:  IESG
 
-7.1.6.  "message/ppm-output-share-resp" media type
+7.1.7.  "message/ppm-output-share-resp" media type
 
    Type name:  application
 
@@ -1872,7 +1937,7 @@ OutputShareReq (State 4) ----------------------------------->
 
    Encoding considerations:  only "8bit" or "binary" is permitted
 
-   Security considerations:  see Section 4.3.2
+   Security considerations:  see Section 4.3.4
 
    Interoperability considerations:  N/A
 
@@ -1901,7 +1966,7 @@ OutputShareReq (State 4) ----------------------------------->
 
    Change controller:  IESG
 
-7.1.7.  "message/ppm-collect-req" media type
+7.1.8.  "message/ppm-collect-req" media type
 
    Type name:  application
 
@@ -1942,7 +2007,7 @@ OutputShareReq (State 4) ----------------------------------->
 
    Change controller:  IESG
 
-7.1.8.  "message/ppm-collect-req" media type
+7.1.9.  "message/ppm-collect-req" media type
 
    Type name:  application
 
