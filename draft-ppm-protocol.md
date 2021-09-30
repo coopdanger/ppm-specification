@@ -584,8 +584,8 @@ enc, context = SetupBaseS(pk,
 ~~~
 
 where `pk` is the aggregator's public key, `task_id` is `Report.task_id` and
-`server_role` is a byte whose value is `0x01` if the aggregator is the leader
-and `0x00` if the aggregator is the helper. The bytestring `enc` is the
+`server_role` is a byte whose value is `0x00` if the aggregator is the leader
+and `0x01` if the aggregator is the helper. The bytestring `enc` is the
 encapsulated HPKE context and the bytestring `context` is the HPKE context used
 by the client for encryption. The payload is encrypted as
 
@@ -639,7 +639,7 @@ Once a set of clients have uploaded their reports to the leader, the leader and
 helper begin verifying and aggregating them. In order to enable the system to
 handle very large batches of reports, this process can be performed
 incrementally. To aggregate a set of reports, the leader sends a sequence of
-request to the helper, the first of which contains the helper's encrypted input
+requests to the helper, the first of which contains the helper's encrypted input
 shares. After a number of successful requests, both aggregators have recovered
 shares of a set of valid inputs.
 
@@ -697,9 +697,9 @@ OutputShareReq (State 4) ----------------------------------->
 
 ### Verify-Start Request
 
-The *verify-start request* request is used by the leader to send a set of
-reports to the helper. These reports MUST all be associated with the same PPM
-task. [[OPEN ISSUE: And the same batch, right?]]
+The *verify-start request* is used by the leader to send a set of reports to the
+helper. These reports MUST all be associated with the same PPM task. [[OPEN
+ISSUE: And the same batch, right? See issue#150.]]
 
 For the second aggregator endpoint `[aggregator]` in `VerifyStartReq.task_id`'s
 parameters, the leader sends a POST request to `[aggregator]/aggregate_start`
@@ -738,7 +738,7 @@ first sub-request also carries the helper's encrypted input share
 
 The leader generates the verification message by decrypting its input share
 `leader_share`. To do so, it first looks up the HPKE secret key `sk` associated
-with `leader_share.aggregato_config_id`. Next, it runs
+with `leader_share.aggregator_config_id`. Next, it runs
 
 ~~~
 context = SetupBaseR(leader_share.enc, sk,
@@ -869,7 +869,7 @@ aggregator runs the VDAF verify-finish algorithm to recover its share of the
 output:
 
 ~~~
-output_share = vdaf_finish(statre, inbound_message)
+output_share = vdaf_finish(state, inbound_message)
 ~~~
 
 where `inbound_message` is the last verification message sent by the peer. The
@@ -991,7 +991,7 @@ The named parameters are:
 * `output_param`, the output parameter with which the VDAF [VDAF] will be
   evaluated.
 
-Depending on the VDAF and how the leader is configured, th collect request may
+Depending on the VDAF and how the leader is configured, the collect request may
 cause the leader to send a series of requests to the helper in order to compute
 their share of the output. Alternately, if `output_share` is empty or a
 well-known value that is fixed in advance, the leader may already have made
