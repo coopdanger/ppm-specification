@@ -993,7 +993,7 @@ The named parameters are:
 
 Depending on the VDAF and how the leader is configured, the collect request may
 cause the leader to send a series of requests to the helper in order to compute
-their share of the output. Alternately, if `output_share` is empty or a
+their share of the output. Alternately, if `output_param` is empty or a
 well-known value that is fixed in advance, the leader may already have made
 these requests and can respond immediately. In either case it responds to the
 collector's request as follows.
