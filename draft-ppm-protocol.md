@@ -456,11 +456,11 @@ associated with it:
   newest report in a batch. This defines the boundaries with which the batch
   interval of each collect request must be aligned. (See
   {{batch-parameter-validation}}.)
-* `input_param` and `verify_param`: The outputs of the VDAF setup algorithm,
-  referred to as the input parameter and verification parameter respectively.
-  The client uses the input parameter to split its input into input shares, and
+* `public_param` and `verify_param`: The outputs of the VDAF setup algorithm,
+  referred to as the public parameter and verification parameter respectively.
+  The client uses the poblic parameter to split its input into input shares, and
   the aggregators use the verification parameter to verify the input's validity.
-  The input parameter MUST be distributed to all clients and MAY be distributed
+  The public parameter MUST be distributed to all clients and MAY be distributed
   to the servers. The verification parameter MUST be distributed to all
   aggregators and MUST NOT be revealed to the clients.
 
@@ -572,7 +572,7 @@ struct {
 * `payload` is the encrypted input share.
 
 To generate the report, the client begins by running the VDAF input-distribution
-algorithm on the input parameter `input_param` and its measurement. This
+algorithm on the public parameter `public_param` and its measurement. This
 transforms the measurement into a pair of input shares, the first intended for
 the leader and the second intended for the helper. To encrypt each input share,
 the client first generates an HPKE {{!I-D.irtf-cfrg-hpke}} context for the
@@ -650,13 +650,13 @@ executed.
   required before the aggregators determine if their shares are valid. The flow
   requires as many requests as there are VDAF rounds.
 
-* Evaluating the VDAF requires an *output parameter*, which may not be known
-  prior to receiving a client's report. For example, the output parameter for
-  Hits [BBCGGI21] is the set of candidate prefixes, which is only known once the
-  collector has recovered the output from the previous collect request. On the
-  other hand, PPM tasks that use prio3 [VDAF] can typically begin the process
-  right away because the output parameter is fixed for the duration of the PPM
-  task.
+* Evaluating the VDAF requires an *aggregation parameter*, which may not be known
+  prior to receiving a client's report. For example, the aggregation parameter
+  for Hits [BBCGGI21] is the set of candidate prefixes, which is only known once
+  the collector has recovered the output from the previous collect request. On
+  the other hand, PPM tasks that use prio3 [VDAF] can typically begin the
+  process right away because the aggregation parameter is fixed for the duration
+  of the PPM task.
 
 [OPEN ISSUE: We're missing some flow from the last paragraph to the rest of this
 intro.] Note that it is possible to aggregate reports from one batch while
@@ -709,15 +709,15 @@ with the following message:
 struct {
   TaskID task_id;
   opaque helper_state<0..2^16>;
-  opaque output_param<0..2^16-1>;
+  opaque aggregation_param<0..2^16-1>;
   VerifyStartSubReq seq<1..2^24-1>;
 } VerifyStartReq;
 ~~~
 
 The structure contains the PPM task, an opaque *helper state* string
 (`helper_state`), and a sequence of *sub-requests* (`seq`), each corresponding
-to a unique client report. The request also carries the output parameter
-(`output_param`) used for VDAF evaluation. Sub-requests are structured as
+to a unique client report. The request also carries the aggregation parameter
+(`aggregation_param`) used for VDAF evaluation. Sub-requests are structured as
 follows:
 
 ~~~
@@ -752,8 +752,8 @@ with the same name. If decryption succeeds, it runs the VDAF verify-start
 algorithm to compute its local VDAF state and the verification message:
 
 ~~~
-(state, VerifyStartSubReq.verify_message) = vdaf_start(0x00,
-          verify_param, output_param, time || nonce, input_share)
+(state, VerifyStartSubReq.verify_message) = vdaf_start(
+      verify_param, aggregation_param, time || nonce, input_share)
 ~~~
 
 In order to provide replay protection, the leader is required to send
@@ -810,8 +810,8 @@ Otherwise, the helper runs the VDAF verify-start algorithm to compute its local
 VDAF state and the verification message:
 
 ~~~
-(state, VerifySubResp.verify_message) = vdaf_start(0x01,
-          verify_param, output_param, time || nonce, input_share)
+(state, VerifySubResp.verify_message) = vdaf_start(
+          verify_param, aggregation_param, time || nonce, input_share)
 ~~~
 
 After processing all of the sub-requests, the helper encrypts its updated state
@@ -980,7 +980,7 @@ as follows:
 struct {
   TaskID task_id;
   Interval batch_interval;
-  opaque output_param<0..2^16-1>;
+  opaque aggregation_param<0..2^16-1>;
 } CollectReq;
 ~~~
 
@@ -988,8 +988,8 @@ The named parameters are:
 
 * `task_id`, the PPM task ID.
 * `batch_interval`, the request's batch interval.
-* `output_param`, the output parameter with which the VDAF [VDAF] will be
-  evaluated.
+* `aggregation_param`, the aggregation parameter with which the VDAF [VDAF] will
+  be evaluated.
 
 Depending on the VDAF and how the leader is configured, the collect request may
 cause the leader to send a series of requests to the helper in order to compute
