@@ -1012,7 +1012,7 @@ OutputShareReq (State 4) ----------------------------------->
    with "invalid batch interval".
 
    Next, the aggregator checks that the request respects the generic
-   XXXcy parameters of the PPM task.  Let X denote the set of input
+   privacy parameters of the PPM task.  Let X denote the set of input
    shares the aggregator has validated and which fall in the batch
    interval of the request.
 
