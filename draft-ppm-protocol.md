@@ -422,11 +422,11 @@ struct {
 A task centers around evaluation of a specific Verifiable Distributed
 Aggregation Function (VDAF, see [VDAF]) over a set of client inputs. The VDAF
 determines the type of input measurements and the type of the output of the
-aggregation function. It also determines how many aggregators are involved (this
-document currently supports just two) and how many rounds of communication among
-the aggregators are required to verify an input's validity. Prior to the start
-of execution of the protocol, each participant must agree on the configuration
-parameters for the task. A task is uniquely identified by its task ID:
+aggregation function. It also determines how many aggregators are involved and
+how many rounds of communication among the aggregators are required to verify an
+input's validity. Prior to the start of execution of the protocol, each
+participant must agree on the configuration parameters for the task. A task is
+uniquely identified by its task ID:
 
 ~~~
 opaque TaskId[32];
@@ -441,9 +441,7 @@ associated with it:
   endpoints can be found. Each endpoint's list MUST be in the same order. The
   leader's endpoint MUST be the first in the list. The order of the
   `encrypted_input_shares` in a `Report` (see {{uploading-reports}}) MUST be the
-  same as the order in which aggregators appear in this list. The length of this
-  list MUST be two. [NOTE We intend to support multiple helpers in the future,
-  but for now there is just one helper and one leader.]
+  same as the order in which aggregators appear in this list.
 * `collector_config`: The HPKE configuration of the collector (described in
   {{key-config}}). Having participants agree on this absolves collectors of the
   burden of operating an HTTP server. See
@@ -458,11 +456,15 @@ associated with it:
   {{batch-parameter-validation}}.)
 * `public_param` and `verify_param`: The outputs of the VDAF setup algorithm,
   referred to as the public parameter and verification parameter respectively.
-  The client uses the poblic parameter to split its input into input shares, and
+  The client uses the public parameter to split its input into input shares, and
   the aggregators use the verification parameter to verify the input's validity.
   The public parameter MUST be distributed to all clients and MAY be distributed
   to the servers. The verification parameter MUST be distributed to all
   aggregators and MUST NOT be revealed to the clients.
+
+The VDAF scheme associated with a task MUST be defined for two and only two
+aggregators. [NOTE: We plan to lift this restriction once we're ready to specify
+the protocol for multiple helpers.]
 
 ## Uploading Reports
 
