@@ -2026,8 +2026,7 @@ enc, context = SetupBaseS(pk,
 </pre><a href="#section-4.2.2-10" class="pilcrow">¶</a>
 </div>
 <p id="section-4.2.2-11">where <code>pk</code> is the aggregator's public key, <code>task_id</code> is <code>Report.task_id</code> and
-<code>server_role</code> is a byte whose value is <code>0x00</code> if the aggregator is the leader
-and <code>0x01</code> if the aggregator is the helper. The bytestring <code>enc</code> is the
+<code>server_role</code> is a byte whose value is the index of the aggregator in the aggregator list. The bytestring <code>enc</code> is the
 encapsulated HPKE context and the bytestring <code>context</code> is the HPKE context used
 by the client for encryption. The payload is encrypted as<a href="#section-4.2.2-11" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.2.2-12">

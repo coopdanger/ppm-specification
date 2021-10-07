@@ -655,11 +655,10 @@ Table of Contents
                             "pda input share" || task_id || server_role)
 
    where pk is the aggregator's public key, task_id is Report.task_id
-   and server_role is a byte whose value is 0x00 if the aggregator is
-   the leader and 0x01 if the aggregator is the helper.  The bytestring
-   enc is the encapsulated HPKE context and the bytestring context is
-   the HPKE context used by the client for encryption.  The payload is
-   encrypted as
+   and server_role is a byte whose value is the index of the aggregator
+   in the aggregator list.  The bytestring enc is the encapsulated HPKE
+   context and the bytestring context is the HPKE context used by the
+   client for encryption.  The payload is encrypted as
 
    payload = context.Seal(time || nonce || extensions, input_share)
 
