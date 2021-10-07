@@ -710,7 +710,7 @@ Table of Contents
    process can be performed incrementally.  To aggregate a set of
    reports, the leader sends a sequence of requests to the helper, the
    first of which contains the helper's encrypted input shares.  After a
-   number of successful requests, both aggregators have recovered shares
+   number of successful requests, the aggregators have recovered shares
    of a set of valid inputs.
 
    The structure of the aggregation flow is determined by the VDAF
