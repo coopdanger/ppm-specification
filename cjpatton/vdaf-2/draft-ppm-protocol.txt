@@ -5,12 +5,12 @@
 Network Working Group                                       T. Geoghegan
 Internet-Draft                                                      ISRG
 Intended status: Standards Track                               C. Patton
-Expires: 5 April 2022                                         Cloudflare
+Expires: 10 April 2022                                        Cloudflare
                                                              E. Rescorla
                                                                  Mozilla
                                                                C.A. Wood
                                                               Cloudflare
-                                                          2 October 2021
+                                                          7 October 2021
 
 
                      Privacy Preserving Measurement
@@ -54,7 +54,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 5 April 2022.
+   This Internet-Draft will expire on 10 April 2022.
 
 Copyright Notice
 
@@ -646,10 +646,10 @@ Table of Contents
 
    To generate the report, the client begins by running the VDAF input-
    distribution algorithm on the public parameter public_param and its
-   measurement.  This transforms the measurement into a pair of input
-   shares, the first intended for the leader and the second intended for
-   the helper.  To encrypt each input share, the client first generates
-   an HPKE [I-D.irtf-cfrg-hpke] context for the aggregator by running
+   measurement.  This transforms the measurement into a set of input
+   shares, one for each aggregator.  To encrypt each input share, the
+   client first generates an HPKE [I-D.irtf-cfrg-hpke] context for the
+   aggregator by running
 
   enc, context = SetupBaseS(pk,
                             "pda input share" || task_id || server_role)
