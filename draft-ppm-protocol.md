@@ -573,8 +573,7 @@ struct {
 
 To generate the report, the client begins by running the VDAF input-distribution
 algorithm on the public parameter `public_param` and its measurement. This
-transforms the measurement into a pair of input shares, the first intended for
-the leader and the second intended for the helper. To encrypt each input share,
+transforms the measurement into a set of input shares, one for each aggregator. To encrypt each input share,
 the client first generates an HPKE {{!I-D.irtf-cfrg-hpke}} context for the
 aggregator by running
 
