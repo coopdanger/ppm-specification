@@ -638,7 +638,7 @@ helper begin verifying and aggregating them. In order to enable the system to
 handle very large batches of reports, this process can be performed
 incrementally. To aggregate a set of reports, the leader sends a sequence of
 requests to the helper, the first of which contains the helper's encrypted input
-shares. After a number of successful requests, both aggregators have recovered
+shares. After a number of successful requests, the aggregators have recovered
 shares of a set of valid inputs.
 
 The structure of the aggregation flow is determined by the VDAF [VDAF] being
