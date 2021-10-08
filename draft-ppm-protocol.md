@@ -421,12 +421,12 @@ struct {
 
 A task centers around evaluation of a specific Verifiable Distributed
 Aggregation Function (VDAF, see [VDAF]) over a set of client inputs. The VDAF
-determines the type of input measurements and the type of the output of the
-aggregation function. It also determines how many aggregators are involved and
-how many rounds of communication among the aggregators are required to verify an
-input's validity. Prior to the start of execution of the protocol, each
-participant must agree on the configuration parameters for the task. A task is
-uniquely identified by its task ID:
+determines the type of input measurements and the type of the output.  It also
+determines how many aggregators are involved and the maximum number of rounds of
+communication among the aggregators that are required to verify the output's
+validity. Prior to the start of execution of the protocol, each participant must
+agree on the configuration parameters for the task. A task is uniquely
+identified by its task ID:
 
 ~~~
 opaque TaskId[32];
@@ -575,9 +575,9 @@ struct {
 
 To generate the report, the client begins by running the VDAF input-distribution
 algorithm on the public parameter `public_param` and its measurement. This
-transforms the measurement into a set of input shares, one for each aggregator. To encrypt each input share,
-the client first generates an HPKE {{!I-D.irtf-cfrg-hpke}} context for the
-aggregator by running
+transforms the measurement into a sequence of input shares, one for each
+aggregator. To encrypt each input share, the client first generates an HPKE
+{{!I-D.irtf-cfrg-hpke}} context for the aggregator by running
 
 ~~~
 enc, context = SetupBaseS(pk,
@@ -585,9 +585,10 @@ enc, context = SetupBaseS(pk,
 ~~~
 
 where `pk` is the aggregator's public key, `task_id` is `Report.task_id` and
-`server_role` is a byte whose value is the index of the aggregator in the aggregator list. The bytestring `enc` is the
-encapsulated HPKE context and the bytestring `context` is the HPKE context used
-by the client for encryption. The payload is encrypted as
+`server_role` is a byte whose value is the index of the aggregator in the
+aggregator list. The bytestring `enc` is the encapsulated HPKE context and the
+bytestring `context` is the HPKE context used by the client for encryption. The
+payload is encrypted as
 
 ~~~
 payload = context.Seal(time || nonce || extensions, input_share)
@@ -635,20 +636,20 @@ information specific to the extension.
 
 ## Verifying and Aggregating Reports {#pa-aggregate}
 
-Once a set of clients have uploaded their reports to the leader, the leader and
-helper begin verifying and aggregating them. In order to enable the system to
-handle very large batches of reports, this process can be performed
-incrementally. To aggregate a set of reports, the leader sends a sequence of
-requests to the helper, the first of which contains the helper's encrypted input
-shares. After a number of successful requests, the aggregators have recovered
-shares of a set of valid inputs.
+Once a set of clients have uploaded their reports to the leader, the aggregators
+begin verifying and aggregating them. In order to enable the system to handle
+very large batches of reports, this process can be performed incrementally. To
+aggregate a set of reports, the leader sends a sequence of requests to each
+helper, the first of which contains the helper's encrypted input share. After a
+number of successful requests, the aggregators have recovered shares of a set of
+valid measurements.
 
 The structure of the aggregation flow is determined by the VDAF [VDAF] being
 executed.
 
 * The VDAF specifies a constant number of rounds of communication that are
-  required before the aggregators determine if their shares are valid. The flow
-  requires as many requests as there are VDAF rounds.
+  required before the aggregators determine if their shares are valid. The
+  number of requests depends on the VDAF.
 
 * Evaluating the VDAF requires an *aggregation parameter*, which may not be known
   prior to receiving a client's report. For example, the aggregation parameter
@@ -697,13 +698,14 @@ OutputShareReq (State 4) ----------------------------------->
 
 ### Verify-Start Request
 
-The *verify-start request* is used by the leader to send a set of reports to the
-helper. These reports MUST all be associated with the same PPM task. [[OPEN
-ISSUE: And the same batch, right? See issue#150.]]
+The *verify-start request* is used by the leader to distribute input shares to
+the helpers and initiate VDAF evaluation. The input shares in these requests
+MUST all be associated with the same PPM task. [[OPEN ISSUE: And the same batch,
+right? See issue#150.]]
 
-For the second aggregator endpoint `[aggregator]` in `VerifyStartReq.task_id`'s
-parameters, the leader sends a POST request to `[aggregator]/aggregate_start`
-with the following message:
+For each aggregator endpoint `[aggregator]` in `AggregateReq.task_id`'s
+parameters except its own, the leader sends a POST request to
+`[aggregator]/verify_start` with the following message:
 
 ~~~
 struct {
@@ -714,7 +716,7 @@ struct {
 } VerifyStartReq;
 ~~~
 
-The structure contains the PPM task, an opaque *helper state* string
+The structure contains the task ID, an opaque *helper state* string
 (`helper_state`), and a sequence of *sub-requests* (`seq`), each corresponding
 to a unique client report. The request also carries the aggregation parameter
 (`aggregation_param`) used for VDAF evaluation. Sub-requests are structured as
@@ -796,18 +798,19 @@ it attempts to decrypt the payload with the following procedure:
 
 ~~~
 context = SetupBaseR(helper_share.enc, sk,
-                     "pda input share" || task_id || 0x01)
+                     "pda input share" || task_id || server_role)
 input_share = context.Open(time || nonce || extensions,
                            helper_share.payload)
 ~~~
 
 where `task_id` is `VerifyStartReq.task_id` and `time`, `nonce`, and
-`extensiosn` are obtained from the corresponding fields in `VerifyStartSubReq`.
-If decryption fails, then the sub-response consists of a "decryption error"
-alert. [See issue#57.]
+`extensiosn` are obtained from the corresponding fields in `VerifyStartSubReq`
+and `server_role` is a byte whose value is the index of the aggregator in the
+aggregator list. If decryption fails, then the sub-response consists of a
+"decryption error" alert. [See issue#57.]
 
-Otherwise, the helper runs the VDAF verify-start algorithm to compute its local
-VDAF state and the verification message:
+Otherwise, the helper runs the VDAF verify-start algorithm to initiate its local
+VDAF state and compute its first-round verification message:
 
 ~~~
 (state, VerifySubResp.verify_message) = vdaf_start(
@@ -821,7 +824,7 @@ and constructs its response to the request.
 
 For VDAFs requiring more than one round of communication, subsequent rounds are
 handled by using a *verify-next request*. the leader sends a POST request to
-`[aggregator]/aggregate_next` with the following message:
+`[aggregator]/verify_next` with the following message:
 
 ~~~
 struct {
@@ -851,16 +854,17 @@ Fields `time` and `nonce` have the same value as the corresponding sub-request
 in the verify-start request. The helper's response consists of a `VerifyResp`
 message constructed as described above.
 
-Both aggregators compute verification message using the VDAF verify-next
-algorithm as
+All aggregators compute the next round's verification message using the VDAF
+verify-next algorithm as
 
 ~~~
-(state, AggregateSubReq.verify_message) = vdaf_next(
-          state, inbound_message)
+(state, verify_message) = vdaf_next(state, inbound_messages)
 ~~~
 
-where `inbound_message` is the verification message sent by the peer in response
-to the previous request and `state` is the aggregator's VDAF state.
+where `inbound_messages` is the sequence of verification messages sent by all of
+the aggregators in the previous round and where `state` is the current
+aggregator's VDAF state. [OPEN ISSUE: We need to say how the sequence of
+verification messages are assembled.]
 
 ### Recovering the Output Share
 
@@ -869,31 +873,32 @@ aggregator runs the VDAF verify-finish algorithm to recover its share of the
 output:
 
 ~~~
-output_share = vdaf_finish(state, inbound_message)
+output_share = vdaf_finish(state, inbound_messages)
 ~~~
 
-where `inbound_message` is the last verification message sent by the peer. The
-output, `output_share`, is added into the aggregator's running total. [OPEN
-ISSUE: Helper needs the leader to confirm acceptance before it consumes its
-output share. See issue#141.]
+where `inbound_messages` is the sequence of verification messages sent by all of
+the aggregators in the last round and where `state` is the aggregator's current
+state. The output, `output_share`, is added into the aggregator's running
+total. [OPEN ISSUE: Helper needs the leader to confirm acceptance before it
+consumes its output share. See issue#141.]
 
 #### Leader State
 
 The leader is required to issue requests in order, but reports are likely to
 arrive out-of-order. The leader SHOULD buffer reports for a time period
-proportional to the batch window before issuing the verify-start request.
-Failure to do so will result in out-of-order reports being dropped by the
-helper.
+proportional to the batch window before issuing the verify-start request to each
+helper. Failure to do so will result in out-of-order reports being dropped by
+the helper.
 
 #### Helper State
 
 The helper state is an optional parameter of the verify-start and verify-next
-requests that the helper can use to carry state across requests. At least part
+requests that the helpers can use to carry state across requests. At least part
 of the state will usually need to be encrypted in order to protect user privacy.
 However, the details of precisely how the state is encrypted and the information
 that it carries is up to the helper implementation.
 
-### Output Share Request {#output-share-request}
+### Output-Share Request {#output-share-request}
 
 Once the aggregators have verified at least as many reports as required for the
 PPM task, the leader issues an *output share request* to each helper. The helper
@@ -940,13 +945,13 @@ enc, context = SetupBaseS(pk,
 encrypted_output_share = context.Seal(batch_interval, OutputShare)
 ~~~
 
-where `pk` is the HPKE public key encoded by the collector's HPKE key
-configuration, `task_id` is `OutputShareReq.task_id` and `server_role` is the
-role of the server (`0x00` for the leader and `0x01` for the helper).
+where `pk` is the HPKE public key encoded by the collector's HPKE keyv
+configuration, `task_id` is `OutputShareReq.task_id` and `server_role` is a byte
+whose value is the index of the aggregator in the aggregator list.
 `batch_interval` is obtained from the `OutputShareReq`.
 
 This encryption prevents the leader from learning the actual VDAF output, as it
-only has its own share and not the helper's share, which is encrypted to the
+only has its own share and not the helper shares, which is encrypted to the
 collector. The helper responds to the collector with HTTP status 200 OK and a
 body consisting of the following structure:
 
@@ -992,7 +997,7 @@ The named parameters are:
   be evaluated.
 
 Depending on the VDAF and how the leader is configured, the collect request may
-cause the leader to send a series of requests to the helper in order to compute
+cause the leader to send a series of requests to the helpers in order to compute
 their share of the output. Alternately, if `output_param` is empty or a
 well-known value that is fixed in advance, the leader may already have made
 these requests and can respond immediately. In either case it responds to the
@@ -1001,7 +1006,7 @@ collector's request as follows.
 It begins by checking that the request meets the requirements of the batch
 parameters using the procedure in {{batch-parameter-validation}}. If so, it
 obtains the helper's encrypted output share for the batch interval by sending an
-output share request to the helper as described in {{output-share-request}}.
+output share request to each helper as described in {{output-share-request}}.
 (This request may too have been made in advance.)
 
 Next, the leader computes its own output share by aggregating all of the valid
