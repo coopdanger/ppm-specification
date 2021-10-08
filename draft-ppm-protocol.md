@@ -421,7 +421,7 @@ struct {
 
 A task centers around evaluation of a specific Verifiable Distributed
 Aggregation Function (VDAF, see [VDAF]) over a set of client inputs. The VDAF
-determines the type of input measurements and the type of the output.  It also
+determines the type of input measurements and the type of the output. It also
 determines how many aggregators are involved and the maximum number of rounds of
 communication among the aggregators that are required to verify the output's
 validity. Prior to the start of execution of the protocol, each participant must
@@ -524,9 +524,9 @@ the cache lifetime in order to avoid rejecting reports.
 
 ### Upload Request
 
-Clients upload reports by using an HTTP POST to `[leader]/upload`, where
-`[leader]` is the first entry in the task's aggregator endpoints. The payload is
-structured as follows:
+Clients upload reports by sending an HTTP POST request to `[leader]/upload`,
+where `[leader]` is the first entry in the task's aggregator endpoints. The
+payload is structured as follows:
 
 ~~~
 struct {
@@ -541,9 +541,7 @@ struct {
 This message is called the client's *report*. It contains the following fields:
 
 * `task_id` is the task ID of the task for which the report is intended.
-* `time` is the time at which the report was generated. This field is used by
-  the aggregators to ensure the report appears in at most one batch. (See
-  {{anti-replay}}.)
+* `time` is the time at which the report was generated.
 * `nonce` is a random number chosen by the client generating the report. This
   and the timestamp field are used by the aggregators to ensure that each report
   appears at most once in a batch. (See {{anti-replay}}.)
@@ -604,10 +602,11 @@ the leader responds with status 200 and an empty body.
 
 The leader responds to requests with out-of-date `HpkeConfig.id` values,
 indicated by `EncryptedInputShare.config_id`, with status 400 and an error of
-type 'outdatedConfig'. [TODO Generalize this last sentence to "decryption
-failures.] Clients SHOULD invalidate any cached aggregator `HpkeConfig` and
-retry with a freshly generated Report. If this retried report does not succeed,
-clients MUST abort and discontinue retrying.
+type 'outdatedConfig'. [OPEN ISSUE: How does the leader know if the HPKE config
+of a helper is invalid? Does it have to make a key-config request?] Clients
+SHOULD invalidate any cached aggregator `HpkeConfig` and retry with a freshly
+generated Report. If this retried report does not succeed, clients MUST abort
+and discontinue retrying.
 
 ### Upload Extensions {#upload-extensions}
 
@@ -637,19 +636,20 @@ information specific to the extension.
 ## Verifying and Aggregating Reports {#pa-aggregate}
 
 Once a set of clients have uploaded their reports to the leader, the aggregators
-begin verifying and aggregating them. In order to enable the system to handle
-very large batches of reports, this process can be performed incrementally. To
-aggregate a set of reports, the leader sends a sequence of requests to each
-helper, the first of which contains the helper's encrypted input share. After a
-number of successful requests, the aggregators have recovered shares of a set of
-valid measurements.
+can begin verifying and aggregating them. In order to enable the system to
+handle very large batches of reports, this process can be performed
+incrementally. To aggregate a subset of reports, the leader sends a sequence of
+requests to each helper, the first of which contains the helper's encrypted
+input share. After a number of successful requests, the aggregators have
+recovered shares of a set of valid measurements.
 
 The structure of the aggregation flow is determined by the VDAF [VDAF] being
-executed.
+executed:
 
-* The VDAF specifies a constant number of rounds of communication that are
+* The VDAF specifies the maximum number of rounds of communication that are
   required before the aggregators determine if their shares are valid. The
-  number of requests depends on the VDAF.
+  number of requests that are made from the leader to the helpers depends on the
+  number of VDAF rounds.
 
 * Evaluating the VDAF requires an *aggregation parameter*, which may not be known
   prior to receiving a client's report. For example, the aggregation parameter
@@ -738,9 +738,9 @@ message (`verify_message`), generated as described in the next paragraph. The
 first sub-request also carries the helper's encrypted input share
 (`helper_share`).
 
-The leader generates the verification message by decrypting its input share
-`leader_share`. To do so, it first looks up the HPKE secret key `sk` associated
-with `leader_share.aggregator_config_id`. Next, it runs
+In order for the leader to compute its first-round verification message, it must
+first decrypt its input share. To do so, it first looks up the HPKE secret key
+`sk` associated with `leader_share.aggregator_config_id`. Next, it runs
 
 ~~~
 context = SetupBaseR(leader_share.enc, sk,
@@ -750,8 +750,10 @@ input_share = context.Open(time || nonce || extensions,
 ~~~
 
 where `task_id`, `time`, `nonce`, and `extensions` are the fields of the report
-with the same name. If decryption succeeds, it runs the VDAF verify-start
-algorithm to compute its local VDAF state and the verification message:
+with the same name. The '0x00' byte signifies that the decrypting party is the
+first aggregator in the sequence of aggregators associated with the task. If
+decryption succeeds, it runs the VDAF verify-start algorithm to compute its
+local VDAF state and its first-round verification message:
 
 ~~~
 (state, VerifyStartSubReq.verify_message) = vdaf_start(
@@ -764,8 +766,8 @@ determined by the algorithm defined in {{anti-replay}}. Specifically, the leader
 constructs each request such that:
 
 * each sub-request follows the previous sub-request; and
-* the first sub-request follows the last sub-request in the previous aggregate
-  request.
+* the first sub-request follows the last sub-request in the previous
+  verify-start request.
 
 The helper handles well-formed requests as follows. (As usual, malformed
 requests are handled as described in {{errors}}.) It first looks for PPM
@@ -774,8 +776,8 @@ out-of-order sub-requests by ignoring any sub-request that does not follow the
 previous one (See {{anti-replay}}.)
 
 The response is an HTTP 200 OK with a body consisting of the helper's updated
-state and a sequence of *sub-responses*, where each sub-response corresponds to
-the sub-request in the same position in `VerifyStartReq`.
+state and a sequence of *sub-responses* ordered by the timestamp and nonce as
+specified in {{anti-replay}}.
 
 ~~~
 struct {
@@ -790,11 +792,12 @@ struct {
 } VerifySubResp;
 ~~~
 
-The helper computes the verification message as follows. It first looks up the
-HPKE secret key `sk` associated with `helper_share.aggregator_config_id`. If
-not found, then the sub-response consists of an "unrecognized config" alert.
-[TODO: We'll want to be more precise about what this means. See issue#57.] Next,
-it attempts to decrypt the payload with the following procedure:
+The helper computes its first-round VDAF verification message as follows. It
+first looks up the HPKE secret key `sk` associated with
+`helper_share.aggregator_config_id`. If not found, then the sub-response
+consists of an "unrecognized config" alert. [TODO: We'll want to be more
+precise about what this means. See issue#57.] Next, it attempts to decrypt the
+payload with the following procedure:
 
 ~~~
 context = SetupBaseR(helper_share.enc, sk,
@@ -850,6 +853,10 @@ struct {
 } VerifyNextSubReq;
 ~~~
 
+[OPEN ISSUE: To support multiple helpers efficiently, `verify_message` will
+actually need to encode the previous round verification messages from all of the
+aggregators and not just the leader.]
+
 Fields `time` and `nonce` have the same value as the corresponding sub-request
 in the verify-start request. The helper's response consists of a `VerifyResp`
 message constructed as described above.
@@ -881,6 +888,8 @@ the aggregators in the last round and where `state` is the aggregator's current
 state. The output, `output_share`, is added into the aggregator's running
 total. [OPEN ISSUE: Helper needs the leader to confirm acceptance before it
 consumes its output share. See issue#141.]
+
+[TODO Handle error if `vdaf_finish` says that the output share is invalid.]
 
 #### Leader State
 
@@ -925,10 +934,10 @@ struct {
 To respond to an output share request, the helper first looks up the PPM
 parameters associated with task `task_id`. Then, using the procedure in
 {{batch-parameter-validation}}, it ensures that the request meets the
-requirements of the batch parameters. If so, it aggregates all valid input
-shares that fall in the batch interval into an output share. The structure of
-the output share is specific to the VDAF [VDAF] being executed, so here it is
-treated as an opaque byte string:
+requirements of the batch parameters. If so, it aggregates all valid output
+shares that fall in the batch interval. The structure of the aggregated output
+share is specific to the VDAF [VDAF] being executed, so here it is treated as an
+opaque byte string:
 
 ~~~
 struct {
@@ -969,7 +978,7 @@ struct {
   output share.
 * `payload` is an encrypted `OutputShare`.
 
-The leader uses the helper's output share response to respond to the collector's
+The leader uses the helpers' output share responses to respond to the collector's
 collect request (see {{pa-collect}}).
 
 
