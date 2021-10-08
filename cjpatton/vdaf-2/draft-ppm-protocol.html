@@ -1030,7 +1030,7 @@ address div.right {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Geoghegan, et al.</td>
-<td class="center">Expires 10 April 2022</td>
+<td class="center">Expires 11 April 2022</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1043,12 +1043,12 @@ address div.right {
 <dd class="internet-draft">draft-ppm-protocol-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2021-10-07" class="published">7 October 2021</time>
+<time datetime="2021-10-08" class="published">8 October 2021</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2022-04-10">10 April 2022</time></dd>
+<dd class="expires"><time datetime="2022-04-11">11 April 2022</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1112,7 +1112,7 @@ be used to collect aggregate data without revealing any individual user's data.<
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 10 April 2022.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 11 April 2022.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1204,7 +1204,7 @@ be used to collect aggregate data without revealing any individual user's data.<
                     <p id="section-toc.1-1.4.2.3.2.3.1"><a href="#section-4.3.3" class="xref">4.3.3</a>.  <a href="#name-recovering-the-output-share" class="xref">Recovering the Output Share</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.4">
-                    <p id="section-toc.1-1.4.2.3.2.4.1"><a href="#section-4.3.4" class="xref">4.3.4</a>.  <a href="#name-output-share-request" class="xref">Output Share Request</a></p>
+                    <p id="section-toc.1-1.4.2.3.2.4.1"><a href="#section-4.3.4" class="xref">4.3.4</a>.  <a href="#name-output-share-request" class="xref">Output-Share Request</a></p>
 </li>
                 </ul>
 </li>
@@ -1824,12 +1824,12 @@ struct {
         </h3>
 <p id="section-4.1-1">A task centers around evaluation of a specific Verifiable Distributed
 Aggregation Function (VDAF, see <span>[<a href="#VDAF" class="xref">VDAF</a>]</span>) over a set of client inputs. The VDAF
-determines the type of input measurements and the type of the output of the
-aggregation function. It also determines how many aggregators are involved and
-how many rounds of communication among the aggregators are required to verify an
-input's validity. Prior to the start of execution of the protocol, each
-participant must agree on the configuration parameters for the task. A task is
-uniquely identified by its task ID:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+determines the type of input measurements and the type of the output. It also
+determines how many aggregators are involved and the maximum number of rounds of
+communication among the aggregators that are required to verify the output's
+validity. Prior to the start of execution of the protocol, each participant must
+agree on the configuration parameters for the task. A task is uniquely
+identified by its task ID:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.1-2">
 <pre>
 opaque TaskId[32];
@@ -1950,9 +1950,9 @@ the cache lifetime in order to avoid rejecting reports.<a href="#section-4.2.1-9
           <h4 id="name-upload-request">
 <a href="#section-4.2.2" class="section-number selfRef">4.2.2. </a><a href="#name-upload-request" class="section-name selfRef">Upload Request</a>
           </h4>
-<p id="section-4.2.2-1">Clients upload reports by using an HTTP POST to <code>[leader]/upload</code>, where
-<code>[leader]</code> is the first entry in the task's aggregator endpoints. The payload is
-structured as follows:<a href="#section-4.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2.2-1">Clients upload reports by sending an HTTP POST request to <code>[leader]/upload</code>,
+where <code>[leader]</code> is the first entry in the task's aggregator endpoints. The
+payload is structured as follows:<a href="#section-4.2.2-1" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.2.2-2">
 <pre>
 struct {
@@ -1970,9 +1970,7 @@ struct {
               <code>task_id</code> is the task ID of the task for which the report is intended.<a href="#section-4.2.2-4.1" class="pilcrow">¶</a>
 </li>
             <li class="normal" id="section-4.2.2-4.2">
-              <code>time</code> is the time at which the report was generated. This field is used by
-the aggregators to ensure the report appears in at most one batch. (See
-<a href="#anti-replay" class="xref">Section 4.4.2</a>.)<a href="#section-4.2.2-4.2" class="pilcrow">¶</a>
+              <code>time</code> is the time at which the report was generated.<a href="#section-4.2.2-4.2" class="pilcrow">¶</a>
 </li>
             <li class="normal" id="section-4.2.2-4.3">
               <code>nonce</code> is a random number chosen by the client generating the report. This
@@ -2017,9 +2015,9 @@ input share.<a href="#section-4.2.2-8.2" class="pilcrow">¶</a>
           </ul>
 <p id="section-4.2.2-9">To generate the report, the client begins by running the VDAF input-distribution
 algorithm on the public parameter <code>public_param</code> and its measurement. This
-transforms the measurement into a set of input shares, one for each aggregator. To encrypt each input share,
-the client first generates an HPKE <span>[<a href="#I-D.irtf-cfrg-hpke" class="xref">I-D.irtf-cfrg-hpke</a>]</span> context for the
-aggregator by running<a href="#section-4.2.2-9" class="pilcrow">¶</a></p>
+transforms the measurement into a sequence of input shares, one for each
+aggregator. To encrypt each input share, the client first generates an HPKE
+<span>[<a href="#I-D.irtf-cfrg-hpke" class="xref">I-D.irtf-cfrg-hpke</a>]</span> context for the aggregator by running<a href="#section-4.2.2-9" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.2.2-10">
 <pre>
 enc, context = SetupBaseS(pk,
@@ -2027,9 +2025,10 @@ enc, context = SetupBaseS(pk,
 </pre><a href="#section-4.2.2-10" class="pilcrow">¶</a>
 </div>
 <p id="section-4.2.2-11">where <code>pk</code> is the aggregator's public key, <code>task_id</code> is <code>Report.task_id</code> and
-<code>server_role</code> is a byte whose value is the index of the aggregator in the aggregator list. The bytestring <code>enc</code> is the
-encapsulated HPKE context and the bytestring <code>context</code> is the HPKE context used
-by the client for encryption. The payload is encrypted as<a href="#section-4.2.2-11" class="pilcrow">¶</a></p>
+<code>server_role</code> is a byte whose value is the index of the aggregator in the
+aggregator list. The bytestring <code>enc</code> is the encapsulated HPKE context and the
+bytestring <code>context</code> is the HPKE context used by the client for encryption. The
+payload is encrypted as<a href="#section-4.2.2-11" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.2.2-12">
 <pre>
 payload = context.Seal(time || nonce || extensions, input_share)
@@ -2043,10 +2042,11 @@ Clients <span class="bcp14">SHOULD NOT</span> upload the same measurement value 
 the leader responds with status 200 and an empty body.<a href="#section-4.2.2-14" class="pilcrow">¶</a></p>
 <p id="section-4.2.2-15">The leader responds to requests with out-of-date <code>HpkeConfig.id</code> values,
 indicated by <code>EncryptedInputShare.config_id</code>, with status 400 and an error of
-type 'outdatedConfig'. [TODO Generalize this last sentence to "decryption
-failures.] Clients <span class="bcp14">SHOULD</span> invalidate any cached aggregator <code>HpkeConfig</code> and
-retry with a freshly generated Report. If this retried report does not succeed,
-clients <span class="bcp14">MUST</span> abort and discontinue retrying.<a href="#section-4.2.2-15" class="pilcrow">¶</a></p>
+type 'outdatedConfig'. [OPEN ISSUE: How does the leader know if the HPKE config
+of a helper is invalid? Does it have to make a key-config request?] Clients
+<span class="bcp14">SHOULD</span> invalidate any cached aggregator <code>HpkeConfig</code> and retry with a freshly
+generated Report. If this retried report does not succeed, clients <span class="bcp14">MUST</span> abort
+and discontinue retrying.<a href="#section-4.2.2-15" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="upload-extensions">
@@ -2084,19 +2084,20 @@ information specific to the extension.<a href="#section-4.2.3-3" class="pilcrow"
         <h3 id="name-verifying-and-aggregating-r">
 <a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-verifying-and-aggregating-r" class="section-name selfRef">Verifying and Aggregating Reports</a>
         </h3>
-<p id="section-4.3-1">Once a set of clients have uploaded their reports to the leader, the leader and
-helper begin verifying and aggregating them. In order to enable the system to
+<p id="section-4.3-1">Once a set of clients have uploaded their reports to the leader, the aggregators
+can begin verifying and aggregating them. In order to enable the system to
 handle very large batches of reports, this process can be performed
-incrementally. To aggregate a set of reports, the leader sends a sequence of
-requests to the helper, the first of which contains the helper's encrypted input
-shares. After a number of successful requests, the aggregators have recovered
-shares of a set of valid inputs.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+incrementally. To aggregate a subset of reports, the leader sends a sequence of
+requests to each helper, the first of which contains the helper's encrypted
+input share. After a number of successful requests, the aggregators have
+recovered shares of a set of valid measurements.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
 <p id="section-4.3-2">The structure of the aggregation flow is determined by the VDAF <span>[<a href="#VDAF" class="xref">VDAF</a>]</span> being
-executed.<a href="#section-4.3-2" class="pilcrow">¶</a></p>
+executed:<a href="#section-4.3-2" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-4.3-3.1">The VDAF specifies a constant number of rounds of communication that are
-required before the aggregators determine if their shares are valid. The flow
-requires as many requests as there are VDAF rounds.<a href="#section-4.3-3.1" class="pilcrow">¶</a>
+<li class="normal" id="section-4.3-3.1">The VDAF specifies the maximum number of rounds of communication that are
+required before the aggregators determine if their shares are valid. The
+number of requests that are made from the leader to the helpers depends on the
+number of VDAF rounds.<a href="#section-4.3-3.1" class="pilcrow">¶</a>
 </li>
           <li class="normal" id="section-4.3-3.2">Evaluating the VDAF requires an <em>aggregation parameter</em>, which may not be known
 prior to receiving a client's report. For example, the aggregation parameter
@@ -2150,12 +2151,13 @@ OutputShareReq (State 4) -----------------------------------&gt;
           <h4 id="name-verify-start-request">
 <a href="#section-4.3.1" class="section-number selfRef">4.3.1. </a><a href="#name-verify-start-request" class="section-name selfRef">Verify-Start Request</a>
           </h4>
-<p id="section-4.3.1-1">The <em>verify-start request</em> is used by the leader to send a set of reports to the
-helper. These reports <span class="bcp14">MUST</span> all be associated with the same PPM task. [[OPEN
-ISSUE: And the same batch, right? See issue#150.]]<a href="#section-4.3.1-1" class="pilcrow">¶</a></p>
-<p id="section-4.3.1-2">For the second aggregator endpoint <code>[aggregator]</code> in <code>VerifyStartReq.task_id</code>'s
-parameters, the leader sends a POST request to <code>[aggregator]/aggregate_start</code>
-with the following message:<a href="#section-4.3.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-1">The <em>verify-start request</em> is used by the leader to distribute input shares to
+the helpers and initiate VDAF evaluation. The input shares in these requests
+<span class="bcp14">MUST</span> all be associated with the same PPM task. [[OPEN ISSUE: And the same batch,
+right? See issue#150.]]<a href="#section-4.3.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-2">For each aggregator endpoint <code>[aggregator]</code> in <code>AggregateReq.task_id</code>'s
+parameters except its own, the leader sends a POST request to
+<code>[aggregator]/verify_start</code> with the following message:<a href="#section-4.3.1-2" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.1-3">
 <pre>
 struct {
@@ -2166,7 +2168,7 @@ struct {
 } VerifyStartReq;
 </pre><a href="#section-4.3.1-3" class="pilcrow">¶</a>
 </div>
-<p id="section-4.3.1-4">The structure contains the PPM task, an opaque <em>helper state</em> string
+<p id="section-4.3.1-4">The structure contains the task ID, an opaque <em>helper state</em> string
 (<code>helper_state</code>), and a sequence of <em>sub-requests</em> (<code>seq</code>), each corresponding
 to a unique client report. The request also carries the aggregation parameter
 (<code>aggregation_param</code>) used for VDAF evaluation. Sub-requests are structured as
@@ -2187,9 +2189,9 @@ struct {
 message (<code>verify_message</code>), generated as described in the next paragraph. The
 first sub-request also carries the helper's encrypted input share
 (<code>helper_share</code>).<a href="#section-4.3.1-6" class="pilcrow">¶</a></p>
-<p id="section-4.3.1-7">The leader generates the verification message by decrypting its input share
-<code>leader_share</code>. To do so, it first looks up the HPKE secret key <code>sk</code> associated
-with <code>leader_share.aggregator_config_id</code>. Next, it runs<a href="#section-4.3.1-7" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-7">In order for the leader to compute its first-round verification message, it must
+first decrypt its input share. To do so, it first looks up the HPKE secret key
+<code>sk</code> associated with <code>leader_share.aggregator_config_id</code>. Next, it runs<a href="#section-4.3.1-7" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.1-8">
 <pre>
 context = SetupBaseR(leader_share.enc, sk,
@@ -2199,8 +2201,10 @@ input_share = context.Open(time || nonce || extensions,
 </pre><a href="#section-4.3.1-8" class="pilcrow">¶</a>
 </div>
 <p id="section-4.3.1-9">where <code>task_id</code>, <code>time</code>, <code>nonce</code>, and <code>extensions</code> are the fields of the report
-with the same name. If decryption succeeds, it runs the VDAF verify-start
-algorithm to compute its local VDAF state and the verification message:<a href="#section-4.3.1-9" class="pilcrow">¶</a></p>
+with the same name. The '0x00' byte signifies that the decrypting party is the
+first aggregator in the sequence of aggregators associated with the task. If
+decryption succeeds, it runs the VDAF verify-start algorithm to compute its
+local VDAF state and its first-round verification message:<a href="#section-4.3.1-9" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.1-10">
 <pre>
 (state, VerifyStartSubReq.verify_message) = vdaf_start(
@@ -2214,8 +2218,8 @@ constructs each request such that:<a href="#section-4.3.1-11" class="pilcrow">¶
 <ul class="normal">
 <li class="normal" id="section-4.3.1-12.1">each sub-request follows the previous sub-request; and<a href="#section-4.3.1-12.1" class="pilcrow">¶</a>
 </li>
-            <li class="normal" id="section-4.3.1-12.2">the first sub-request follows the last sub-request in the previous aggregate
-request.<a href="#section-4.3.1-12.2" class="pilcrow">¶</a>
+            <li class="normal" id="section-4.3.1-12.2">the first sub-request follows the last sub-request in the previous
+verify-start request.<a href="#section-4.3.1-12.2" class="pilcrow">¶</a>
 </li>
           </ul>
 <p id="section-4.3.1-13">The helper handles well-formed requests as follows. (As usual, malformed
@@ -2224,8 +2228,8 @@ parameters corresponding to <code>VerifyStartReq.task_id</code>. It then filters
 out-of-order sub-requests by ignoring any sub-request that does not follow the
 previous one (See <a href="#anti-replay" class="xref">Section 4.4.2</a>.)<a href="#section-4.3.1-13" class="pilcrow">¶</a></p>
 <p id="section-4.3.1-14">The response is an HTTP 200 OK with a body consisting of the helper's updated
-state and a sequence of <em>sub-responses</em>, where each sub-response corresponds to
-the sub-request in the same position in <code>VerifyStartReq</code>.<a href="#section-4.3.1-14" class="pilcrow">¶</a></p>
+state and a sequence of <em>sub-responses</em> ordered by the timestamp and nonce as
+specified in <a href="#anti-replay" class="xref">Section 4.4.2</a>.<a href="#section-4.3.1-14" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.1-15">
 <pre>
 struct {
@@ -2240,25 +2244,27 @@ struct {
 } VerifySubResp;
 </pre><a href="#section-4.3.1-15" class="pilcrow">¶</a>
 </div>
-<p id="section-4.3.1-16">The helper computes the verification message as follows. It first looks up the
-HPKE secret key <code>sk</code> associated with <code>helper_share.aggregator_config_id</code>. If
-not found, then the sub-response consists of an "unrecognized config" alert.
-[TODO: We'll want to be more precise about what this means. See issue#57.] Next,
-it attempts to decrypt the payload with the following procedure:<a href="#section-4.3.1-16" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-16">The helper computes its first-round VDAF verification message as follows. It
+first looks up the HPKE secret key <code>sk</code> associated with
+<code>helper_share.aggregator_config_id</code>. If not found, then the sub-response
+consists of an "unrecognized config" alert. [TODO: We'll want to be more
+precise about what this means. See issue#57.] Next, it attempts to decrypt the
+payload with the following procedure:<a href="#section-4.3.1-16" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.1-17">
 <pre>
 context = SetupBaseR(helper_share.enc, sk,
-                     "pda input share" || task_id || 0x01)
+                     "pda input share" || task_id || server_role)
 input_share = context.Open(time || nonce || extensions,
                            helper_share.payload)
 </pre><a href="#section-4.3.1-17" class="pilcrow">¶</a>
 </div>
 <p id="section-4.3.1-18">where <code>task_id</code> is <code>VerifyStartReq.task_id</code> and <code>time</code>, <code>nonce</code>, and
-<code>extensiosn</code> are obtained from the corresponding fields in <code>VerifyStartSubReq</code>.
-If decryption fails, then the sub-response consists of a "decryption error"
-alert. [See issue#57.]<a href="#section-4.3.1-18" class="pilcrow">¶</a></p>
-<p id="section-4.3.1-19">Otherwise, the helper runs the VDAF verify-start algorithm to compute its local
-VDAF state and the verification message:<a href="#section-4.3.1-19" class="pilcrow">¶</a></p>
+<code>extensiosn</code> are obtained from the corresponding fields in <code>VerifyStartSubReq</code>
+and <code>server_role</code> is a byte whose value is the index of the aggregator in the
+aggregator list. If decryption fails, then the sub-response consists of a
+"decryption error" alert. [See issue#57.]<a href="#section-4.3.1-18" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-19">Otherwise, the helper runs the VDAF verify-start algorithm to initiate its local
+VDAF state and compute its first-round verification message:<a href="#section-4.3.1-19" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.1-20">
 <pre>
 (state, VerifySubResp.verify_message) = vdaf_start(
@@ -2276,7 +2282,7 @@ and constructs its response to the request.<a href="#section-4.3.1-21" class="pi
           </h4>
 <p id="section-4.3.2-1">For VDAFs requiring more than one round of communication, subsequent rounds are
 handled by using a <em>verify-next request</em>. the leader sends a POST request to
-<code>[aggregator]/aggregate_next</code> with the following message:<a href="#section-4.3.2-1" class="pilcrow">¶</a></p>
+<code>[aggregator]/verify_next</code> with the following message:<a href="#section-4.3.2-1" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.2-2">
 <pre>
 struct {
@@ -2309,19 +2315,23 @@ struct {
 } VerifyNextSubReq;
 </pre><a href="#section-4.3.2-5" class="pilcrow">¶</a>
 </div>
-<p id="section-4.3.2-6">Fields <code>time</code> and <code>nonce</code> have the same value as the corresponding sub-request
+<p id="section-4.3.2-6">[OPEN ISSUE: To support multiple helpers efficiently, <code>verify_message</code> will
+actually need to encode the previous round verification messages from all of the
+aggregators and not just the leader.]<a href="#section-4.3.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.3.2-7">Fields <code>time</code> and <code>nonce</code> have the same value as the corresponding sub-request
 in the verify-start request. The helper's response consists of a <code>VerifyResp</code>
-message constructed as described above.<a href="#section-4.3.2-6" class="pilcrow">¶</a></p>
-<p id="section-4.3.2-7">Both aggregators compute verification message using the VDAF verify-next
-algorithm as<a href="#section-4.3.2-7" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-4.3.2-8">
+message constructed as described above.<a href="#section-4.3.2-7" class="pilcrow">¶</a></p>
+<p id="section-4.3.2-8">All aggregators compute the next round's verification message using the VDAF
+verify-next algorithm as<a href="#section-4.3.2-8" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.3.2-9">
 <pre>
-(state, AggregateSubReq.verify_message) = vdaf_next(
-          state, inbound_message)
-</pre><a href="#section-4.3.2-8" class="pilcrow">¶</a>
+(state, verify_message) = vdaf_next(state, inbound_messages)
+</pre><a href="#section-4.3.2-9" class="pilcrow">¶</a>
 </div>
-<p id="section-4.3.2-9">where <code>inbound_message</code> is the verification message sent by the peer in response
-to the previous request and <code>state</code> is the aggregator's VDAF state.<a href="#section-4.3.2-9" class="pilcrow">¶</a></p>
+<p id="section-4.3.2-10">where <code>inbound_messages</code> is the sequence of verification messages sent by all of
+the aggregators in the previous round and where <code>state</code> is the current
+aggregator's VDAF state. [OPEN ISSUE: We need to say how the sequence of
+verification messages are assembled.]<a href="#section-4.3.2-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="recovering-the-output-share">
@@ -2334,13 +2344,15 @@ aggregator runs the VDAF verify-finish algorithm to recover its share of the
 output:<a href="#section-4.3.3-1" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.3-2">
 <pre>
-output_share = vdaf_finish(state, inbound_message)
+output_share = vdaf_finish(state, inbound_messages)
 </pre><a href="#section-4.3.3-2" class="pilcrow">¶</a>
 </div>
-<p id="section-4.3.3-3">where <code>inbound_message</code> is the last verification message sent by the peer. The
-output, <code>output_share</code>, is added into the aggregator's running total. [OPEN
-ISSUE: Helper needs the leader to confirm acceptance before it consumes its
-output share. See issue#141.]<a href="#section-4.3.3-3" class="pilcrow">¶</a></p>
+<p id="section-4.3.3-3">where <code>inbound_messages</code> is the sequence of verification messages sent by all of
+the aggregators in the last round and where <code>state</code> is the aggregator's current
+state. The output, <code>output_share</code>, is added into the aggregator's running
+total. [OPEN ISSUE: Helper needs the leader to confirm acceptance before it
+consumes its output share. See issue#141.]<a href="#section-4.3.3-3" class="pilcrow">¶</a></p>
+<p id="section-4.3.3-4">[TODO Handle error if <code>vdaf_finish</code> says that the output share is invalid.]<a href="#section-4.3.3-4" class="pilcrow">¶</a></p>
 <div id="leader-state">
 <section id="section-4.3.3.1">
             <h5 id="name-leader-state">
@@ -2348,9 +2360,9 @@ output share. See issue#141.]<a href="#section-4.3.3-3" class="pilcrow">¶</a></
             </h5>
 <p id="section-4.3.3.1-1">The leader is required to issue requests in order, but reports are likely to
 arrive out-of-order. The leader <span class="bcp14">SHOULD</span> buffer reports for a time period
-proportional to the batch window before issuing the verify-start request.
-Failure to do so will result in out-of-order reports being dropped by the
-helper.<a href="#section-4.3.3.1-1" class="pilcrow">¶</a></p>
+proportional to the batch window before issuing the verify-start request to each
+helper. Failure to do so will result in out-of-order reports being dropped by
+the helper.<a href="#section-4.3.3.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="helper-state">
@@ -2359,7 +2371,7 @@ helper.<a href="#section-4.3.3.1-1" class="pilcrow">¶</a></p>
 <a href="#section-4.3.3.2" class="section-number selfRef">4.3.3.2. </a><a href="#name-helper-state" class="section-name selfRef">Helper State</a>
             </h5>
 <p id="section-4.3.3.2-1">The helper state is an optional parameter of the verify-start and verify-next
-requests that the helper can use to carry state across requests. At least part
+requests that the helpers can use to carry state across requests. At least part
 of the state will usually need to be encrypted in order to protect user privacy.
 However, the details of precisely how the state is encrypted and the information
 that it carries is up to the helper implementation.<a href="#section-4.3.3.2-1" class="pilcrow">¶</a></p>
@@ -2370,7 +2382,7 @@ that it carries is up to the helper implementation.<a href="#section-4.3.3.2-1" 
 <div id="output-share-request">
 <section id="section-4.3.4">
           <h4 id="name-output-share-request">
-<a href="#section-4.3.4" class="section-number selfRef">4.3.4. </a><a href="#name-output-share-request" class="section-name selfRef">Output Share Request</a>
+<a href="#section-4.3.4" class="section-number selfRef">4.3.4. </a><a href="#name-output-share-request" class="section-name selfRef">Output-Share Request</a>
           </h4>
 <p id="section-4.3.4-1">Once the aggregators have verified at least as many reports as required for the
 PPM task, the leader issues an <em>output share request</em> to each helper. The helper
@@ -2403,10 +2415,10 @@ the leader.<a href="#section-4.3.4-4.3" class="pilcrow">¶</a>
 <p id="section-4.3.4-5">To respond to an output share request, the helper first looks up the PPM
 parameters associated with task <code>task_id</code>. Then, using the procedure in
 <a href="#batch-parameter-validation" class="xref">Section 4.4.1</a>, it ensures that the request meets the
-requirements of the batch parameters. If so, it aggregates all valid input
-shares that fall in the batch interval into an output share. The structure of
-the output share is specific to the VDAF <span>[<a href="#VDAF" class="xref">VDAF</a>]</span> being executed, so here it is
-treated as an opaque byte string:<a href="#section-4.3.4-5" class="pilcrow">¶</a></p>
+requirements of the batch parameters. If so, it aggregates all valid output
+shares that fall in the batch interval. The structure of the aggregated output
+share is specific to the VDAF <span>[<a href="#VDAF" class="xref">VDAF</a>]</span> being executed, so here it is treated as an
+opaque byte string:<a href="#section-4.3.4-5" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.4-6">
 <pre>
 struct {
@@ -2423,12 +2435,12 @@ enc, context = SetupBaseS(pk,
 encrypted_output_share = context.Seal(batch_interval, OutputShare)
 </pre><a href="#section-4.3.4-8" class="pilcrow">¶</a>
 </div>
-<p id="section-4.3.4-9">where <code>pk</code> is the HPKE public key encoded by the collector's HPKE key
-configuration, <code>task_id</code> is <code>OutputShareReq.task_id</code> and <code>server_role</code> is the
-role of the server (<code>0x00</code> for the leader and <code>0x01</code> for the helper).
+<p id="section-4.3.4-9">where <code>pk</code> is the HPKE public key encoded by the collector's HPKE keyv
+configuration, <code>task_id</code> is <code>OutputShareReq.task_id</code> and <code>server_role</code> is a byte
+whose value is the index of the aggregator in the aggregator list.
 <code>batch_interval</code> is obtained from the <code>OutputShareReq</code>.<a href="#section-4.3.4-9" class="pilcrow">¶</a></p>
 <p id="section-4.3.4-10">This encryption prevents the leader from learning the actual VDAF output, as it
-only has its own share and not the helper's share, which is encrypted to the
+only has its own share and not the helper shares, which is encrypted to the
 collector. The helper responds to the collector with HTTP status 200 OK and a
 body consisting of the following structure:<a href="#section-4.3.4-10" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-4.3.4-11">
@@ -2453,7 +2465,7 @@ output share.<a href="#section-4.3.4-12.2" class="pilcrow">¶</a>
               <code>payload</code> is an encrypted <code>OutputShare</code>.<a href="#section-4.3.4-12.3" class="pilcrow">¶</a>
 </li>
           </ul>
-<p id="section-4.3.4-13">The leader uses the helper's output share response to respond to the collector's
+<p id="section-4.3.4-13">The leader uses the helpers' output share responses to respond to the collector's
 collect request (see <a href="#pa-collect" class="xref">Section 4.4</a>).<a href="#section-4.3.4-13" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2492,7 +2504,7 @@ be evaluated.<a href="#section-4.4-4.3" class="pilcrow">¶</a>
 </li>
         </ul>
 <p id="section-4.4-5">Depending on the VDAF and how the leader is configured, the collect request may
-cause the leader to send a series of requests to the helper in order to compute
+cause the leader to send a series of requests to the helpers in order to compute
 their share of the output. Alternately, if <code>output_param</code> is empty or a
 well-known value that is fixed in advance, the leader may already have made
 these requests and can respond immediately. In either case it responds to the
@@ -2500,7 +2512,7 @@ collector's request as follows.<a href="#section-4.4-5" class="pilcrow">¶</a></
 <p id="section-4.4-6">It begins by checking that the request meets the requirements of the batch
 parameters using the procedure in <a href="#batch-parameter-validation" class="xref">Section 4.4.1</a>. If so, it
 obtains the helper's encrypted output share for the batch interval by sending an
-output share request to the helper as described in <a href="#output-share-request" class="xref">Section 4.3.4</a>.
+output share request to each helper as described in <a href="#output-share-request" class="xref">Section 4.3.4</a>.
 (This request may too have been made in advance.)<a href="#section-4.4-6" class="pilcrow">¶</a></p>
 <p id="section-4.4-7">Next, the leader computes its own output share by aggregating all of the valid
 input shares that fall within the batch interval. Finally, it responds with HTTP
